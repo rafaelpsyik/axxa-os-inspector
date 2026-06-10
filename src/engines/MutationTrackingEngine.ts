@@ -171,6 +171,11 @@ function safeSelector(el: HTMLElement): string {
 }
 
 /** Ignore mutations caused by AXXA's own overlays/UI to avoid feedback loops. */
+const OWN_UI = ".axxa-overlay-root, .axxa-inspector-view, .axxa-floating, .axxa-debuglog";
 function isOwnUi(el: HTMLElement): boolean {
-	return !!el.closest?.(".axxa-overlay-root, .axxa-inspector-view") || el.classList.contains("axxa-overlay-root");
+	return (
+		!!el.closest?.(OWN_UI) ||
+		el.classList.contains("axxa-overlay-root") ||
+		el.classList.contains("axxa-floating")
+	);
 }

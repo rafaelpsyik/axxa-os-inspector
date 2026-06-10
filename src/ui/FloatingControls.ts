@@ -3,6 +3,7 @@ import { DisposableGroup, type IDisposable } from "../core/Disposable";
 import type { ServiceContainer } from "../core/ServiceContainer";
 import { Tokens } from "../core/tokens";
 import { buildUniqueSelector } from "../utils/selector";
+import { copyToClipboard } from "../utils/clipboard";
 import { renderStyleEditor } from "./StyleEditor";
 
 /**
@@ -31,6 +32,7 @@ export class FloatingControls implements IDisposable {
 		{} as never;
 	private stylesToggle!: HTMLButtonElement;
 	private stylesEl!: HTMLElement;
+	private snippetBtn!: HTMLButtonElement;
 	private stylesOpen = false;
 	private visible = false;
 
@@ -105,6 +107,25 @@ export class FloatingControls implements IDisposable {
 		panelBtn.createSpan({ text: "Panel" });
 		panelBtn.setAttr("aria-label", "Open full inspector panel");
 		panelBtn.onclick = () => this.openPanel();
+
+		// Snippet export of everything currently edited, with a live count badge.
+		const snippetRow = this.root.createDiv({ cls: "axxa-floating-row" });
+		this.snippetBtn = snippetRow.createEl("button", { cls: "axxa-floating-btn" });
+		setIcon(this.snippetBtn.createSpan(), "clipboard-copy");
+		this.snippetBtn.createSpan({ text: "Copy snippet" });
+		this.snippetBtn.createSpan({ cls: "axxa-badge is-hidden" });
+		this.snippetBtn.onclick = () =>
+			void copyToClipboard(this.container.resolve(Tokens.Css).exportCurrentSnippet(), "CSS snippet");
+		this.group.register(
+			this.container.bus.on("changes-updated", ({ count }) => this.syncChanges(count)),
+		);
+	}
+
+	private syncChanges(count: number): void {
+		const badge = this.snippetBtn?.querySelector(".axxa-badge");
+		if (!(badge instanceof HTMLElement)) return;
+		badge.setText(String(count));
+		badge.toggleClass("is-hidden", count === 0);
 	}
 
 	/** Textual feedback — guarantees a readout even if the overlay is subtle. */

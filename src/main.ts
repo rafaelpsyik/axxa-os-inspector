@@ -15,8 +15,10 @@ import { ExperimentSandbox } from "./engines/ExperimentSandbox";
 import { LayoutDebugger } from "./engines/LayoutDebugger";
 import { InspectorView, AXXA_VIEW_TYPE } from "./ui/InspectorView";
 import { FloatingControls } from "./ui/FloatingControls";
+import { DebugLog } from "./ui/DebugLog";
 import { AxxaSettingsTab } from "./settings/SettingsTab";
 import { isMobile } from "./utils/platform";
+import { copyToClipboard } from "./utils/clipboard";
 import type { AxxaPluginData } from "./types/settings";
 
 /**
@@ -31,6 +33,7 @@ import type { AxxaPluginData } from "./types/settings";
 export default class AxxaInspectorPlugin extends Plugin {
 	private container!: ServiceContainer;
 	private floating!: FloatingControls;
+	private debugLog!: DebugLog;
 	persistence!: PersistenceLayer;
 
 	async onload(): Promise<void> {
@@ -93,6 +96,7 @@ export default class AxxaInspectorPlugin extends Plugin {
 	onunload(): void {
 		this.app.workspace.detachLeavesOfType(AXXA_VIEW_TYPE);
 		this.floating?.dispose();
+		this.debugLog?.dispose();
 		this.container?.dispose();
 	}
 
@@ -114,6 +118,8 @@ export default class AxxaInspectorPlugin extends Plugin {
 		// Floating, always-on-top controls (Freeze + DOM navigation arrows).
 		// Created here so it exists before any command/ribbon can reveal it.
 		this.floating = new FloatingControls(this.container, () => void this.activateView());
+		// On-screen debug console for mobile (no DevTools).
+		this.debugLog = new DebugLog(this.container);
 
 		// Ribbon icons.
 		this.addRibbonIcon("scan-search", "Open AXXA Inspector", () => void this.activateView());
@@ -144,6 +150,19 @@ export default class AxxaInspectorPlugin extends Plugin {
 			id: "toggle-floating-controls",
 			name: "Toggle floating controls (Freeze + arrows)",
 			callback: () => this.floating.toggle(),
+		});
+		this.addCommand({
+			id: "toggle-debug-log",
+			name: "Toggle on-screen debug log",
+			callback: () => this.debugLog.toggle(),
+		});
+		this.addCommand({
+			id: "copy-changes-snippet",
+			name: "Copy snippet of current edits",
+			callback: () => {
+				const css = this.container.resolve(Tokens.Css).exportCurrentSnippet();
+				void copyToClipboard(css, "CSS snippet");
+			},
 		});
 		this.addCommand({
 			id: "exit-isolation",

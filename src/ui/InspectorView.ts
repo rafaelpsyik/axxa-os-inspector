@@ -9,12 +9,15 @@ import { formatSpecificity } from "../utils/specificity";
 import type { VisualTestAction } from "../types/experiment";
 import type { ExportFormat } from "../types/export";
 import { renderStyleEditor } from "./StyleEditor";
+import { renderCappedList } from "./list";
+import { saveSnippet } from "../utils/snippet";
 
 export const AXXA_VIEW_TYPE = "axxa-inspector-view";
 
 type TabId =
 	| "inspect"
 	| "styles"
+	| "changes"
 	| "dom"
 	| "variables"
 	| "stylesheets"
@@ -25,6 +28,7 @@ type TabId =
 const TABS: { id: TabId; label: string; icon: string }[] = [
 	{ id: "inspect", label: "Inspect", icon: "mouse-pointer-click" },
 	{ id: "styles", label: "Styles", icon: "paintbrush" },
+	{ id: "changes", label: "Changes", icon: "history" },
 	{ id: "dom", label: "DOM", icon: "list-tree" },
 	{ id: "variables", label: "Variables", icon: "variable" },
 	{ id: "stylesheets", label: "Sheets", icon: "file-code" },
@@ -46,6 +50,7 @@ export class InspectorView extends ItemView {
 	private headerEl!: HTMLElement;
 	private breadcrumbEl!: HTMLElement;
 	private bodyEl!: HTMLElement;
+	private changesBadge: HTMLElement | null = null;
 	private selected: HTMLElement | null = null;
 
 	constructor(
@@ -92,8 +97,13 @@ export class InspectorView extends ItemView {
 		this.group.register(bus.on("mutation-recorded", () => {
 			if (this.activeTab === "mutations") this.renderBody();
 		}));
+		this.group.register(bus.on("changes-updated", () => {
+			this.updateChangesBadge();
+			if (this.activeTab === "changes") this.renderBody();
+		}));
 
 		this.renderBreadcrumb();
+		this.updateChangesBadge();
 		this.renderBody();
 	}
 
@@ -134,14 +144,15 @@ export class InspectorView extends ItemView {
 		for (const tab of TABS) {
 			const btn = strip.createEl("button", { cls: "axxa-tab" });
 			btn.setAttr("role", "tab");
+			btn.dataset.tab = tab.id;
 			setIcon(btn.createSpan({ cls: "axxa-tab-icon" }), tab.icon);
 			btn.createSpan({ text: tab.label });
-			const sync = () => {
-				const active = this.activeTab === tab.id;
-				btn.toggleClass("is-active", active);
-				btn.setAttr("aria-selected", String(active));
-			};
-			sync();
+			if (tab.id === "changes") {
+				this.changesBadge = btn.createSpan({ cls: "axxa-badge is-hidden" });
+			}
+			const active = this.activeTab === tab.id;
+			btn.toggleClass("is-active", active);
+			btn.setAttr("aria-selected", String(active));
 			btn.onclick = () => {
 				this.activeTab = tab.id;
 				strip.findAll(".axxa-tab").forEach((b) => b.removeClass("is-active"));
@@ -149,6 +160,13 @@ export class InspectorView extends ItemView {
 				this.renderBody();
 			};
 		}
+	}
+
+	private updateChangesBadge(): void {
+		if (!this.changesBadge) return;
+		const count = this.container.resolve(Tokens.Css).changeCount;
+		this.changesBadge.setText(String(count));
+		this.changesBadge.toggleClass("is-hidden", count === 0);
 	}
 
 	// ── Breadcrumb (Feature 1) ────────────────────────────────────────────────────
@@ -182,6 +200,8 @@ export class InspectorView extends ItemView {
 				return this.renderInspectTab();
 			case "styles":
 				return this.renderStylesTab();
+			case "changes":
+				return this.renderChangesTab();
 			case "dom":
 				return this.renderDomTab();
 			case "variables":
@@ -284,26 +304,88 @@ export class InspectorView extends ItemView {
 			onChange: () => this.renderBody(),
 		});
 
-		// Matched rules with origin + specificity
+		// Matched rules with origin + specificity (capped list for performance)
 		const rules = css.getMatchedRules(el);
 		const rulesCard = this.bodyEl.createDiv({ cls: "axxa-card" });
 		rulesCard.createEl("h4", { text: `Matched rules (${rules.length})` });
-		for (const rule of rules) {
-			const r = rulesCard.createDiv({ cls: "axxa-rule" });
-			const head = r.createDiv({ cls: "axxa-rule-head" });
-			head.createSpan({ cls: `axxa-origin axxa-origin-${rule.origin}`, text: rule.origin });
-			head.createSpan({ cls: "axxa-rule-selector", text: rule.selector });
-			head.createSpan({ cls: "axxa-muted", text: `${rule.sourceName} ${formatSpecificity(rule.specificity)}` });
-			for (const d of rule.declarations) {
-				const dl = r.createDiv({ cls: "axxa-decl" });
-				dl.toggleClass("is-overridden", d.overridden);
-				dl.setText(`${d.property}: ${d.value}${d.important ? " !important" : ""}`);
-			}
-		}
+		renderCappedList(rulesCard.createDiv(), {
+			items: rules,
+			pageSize: 20,
+			emptyText: "No author rules match this element.",
+			renderItem: (rule, listEl) => {
+				const r = listEl.createDiv({ cls: "axxa-rule" });
+				const head = r.createDiv({ cls: "axxa-rule-head" });
+				head.createSpan({ cls: `axxa-origin axxa-origin-${rule.origin}`, text: rule.origin });
+				head.createSpan({ cls: "axxa-rule-selector", text: rule.selector });
+				head.createSpan({ cls: "axxa-muted", text: `${rule.sourceName} ${formatSpecificity(rule.specificity)}` });
+				for (const d of rule.declarations) {
+					const dl = r.createDiv({ cls: "axxa-decl" });
+					dl.toggleClass("is-overridden", d.overridden);
+					dl.setText(`${d.property}: ${d.value}${d.important ? " !important" : ""}`);
+				}
+			},
+		});
 
 		this.renderExportRow(this.bodyEl, "element-css", (format) => {
 			const descriptor = this.container.resolve(Tokens.Dom).describe(el);
 			return this.container.resolve(Tokens.Export).exportElementCss(descriptor, rules, format);
+		});
+	}
+
+	// ── Changes tab: list of edited elements + snippet export (Features 3, 13) ────
+
+	private renderChangesTab(): void {
+		const css = this.container.resolve(Tokens.Css);
+		const changes = css.getEditedElements();
+
+		// Snippet actions (the "export what's currently changed" deliverable).
+		const actions = this.bodyEl.createDiv({ cls: "axxa-card" });
+		actions.createEl("h4", { text: `Live edits · ${changes.length} element(s)` });
+		const row = actions.createDiv({ cls: "axxa-btn-row" });
+
+		const copy = row.createEl("button", { cls: "axxa-btn mod-cta", text: "Copy snippet" });
+		copy.onclick = () => void copyToClipboard(css.exportCurrentSnippet(), "CSS snippet");
+
+		const save = row.createEl("button", { cls: "axxa-btn", text: "Save as snippet" });
+		save.onclick = () => void saveSnippet(this.app, "axxa-inspector", css.exportCurrentSnippet());
+
+		const resetAll = row.createEl("button", { cls: "axxa-btn mod-warning", text: "Reset all" });
+		resetAll.disabled = changes.length === 0;
+		resetAll.onclick = () => {
+			css.resetAll();
+			this.renderBody();
+		};
+
+		// Changed-elements list (small/capped for mobile).
+		const listCard = this.bodyEl.createDiv({ cls: "axxa-card" });
+		renderCappedList(listCard, {
+			items: changes,
+			pageSize: 20,
+			emptyText: "No live edits yet. Edit styles to see them tracked here.",
+			renderItem: (change, listEl) => {
+				const item = listEl.createDiv({ cls: "axxa-change" });
+				const head = item.createDiv({ cls: "axxa-change-head" });
+				const dom = this.container.resolve(Tokens.Dom);
+				const label = dom.describe(change.element).semanticLabel;
+				const jump = head.createEl("button", { cls: "axxa-change-jump" });
+				jump.createSpan({ cls: "axxa-change-label", text: label ?? change.selector });
+				jump.createSpan({ cls: "axxa-badge", text: String(change.edits.length) });
+				jump.onclick = () => this.container.resolve(Tokens.Inspector).select(change.element);
+
+				const reset = head.createEl("button", { cls: "axxa-icon-btn", attr: { "aria-label": "Reset element" } });
+				setIcon(reset, "rotate-ccw");
+				reset.onclick = () => {
+					css.resetElement(change.element);
+					this.renderBody();
+				};
+
+				for (const edit of change.edits) {
+					item.createDiv({
+						cls: "axxa-decl",
+						text: `${edit.property}: ${edit.newValue}`,
+					});
+				}
+			},
 		});
 	}
 
@@ -333,12 +415,16 @@ export class InspectorView extends ItemView {
 							? { tag: q }
 							: { text: q };
 			const hits = dom.search(query);
-			results.createSpan({ cls: "axxa-muted", text: `${hits.length} match(es)` });
-			hits.slice(0, 100).forEach((el) => {
-				const row = results.createEl("button", { cls: "axxa-tree-node" });
-				const desc = dom.describe(el);
-				row.setText(desc.semanticLabel ? `${desc.semanticLabel} · ${desc.selector}` : desc.selector);
-				row.onclick = () => this.container.resolve(Tokens.Inspector).select(el);
+			renderCappedList(results, {
+				items: hits,
+				pageSize: 30,
+				emptyText: "No matches.",
+				renderItem: (el, listEl) => {
+					const node = listEl.createEl("button", { cls: "axxa-tree-node" });
+					const desc = dom.describe(el);
+					node.setText(desc.semanticLabel ? `${desc.semanticLabel} · ${desc.selector}` : desc.selector);
+					node.onclick = () => this.container.resolve(Tokens.Inspector).select(el);
+				},
 			});
 		};
 		input.oninput = run;
@@ -364,19 +450,23 @@ export class InspectorView extends ItemView {
 		const list = card.createDiv();
 
 		const draw = () => {
-			list.empty();
 			const term = filter.value.toLowerCase();
-			vars
-				.filter((v) => v.name.toLowerCase().includes(term))
-				.slice(0, 300)
-				.forEach((v) => {
-					const row = list.createDiv({ cls: "axxa-prop-row" });
-					row.createSpan({ cls: "axxa-prop-key", text: v.name });
+			const matches = vars.filter((v) => v.name.toLowerCase().includes(term));
+			renderCappedList(list, {
+				items: matches,
+				pageSize: 40,
+				emptyText: "No variables match.",
+				renderItem: (v, listEl) => {
+					const row = listEl.createDiv({ cls: "axxa-prop-row" });
+					const key = row.createSpan({ cls: "axxa-prop-key", text: v.name });
+					const swatch = key.createSpan({ cls: "axxa-style-swatch" });
+					swatch.style.background = v.computedValue || "transparent";
 					const input = row.createEl("input", { cls: "axxa-prop-val" });
 					input.value = v.value;
 					input.onchange = () => css.setVariable(v.name, input.value);
-					row.createSpan({ cls: "axxa-muted", text: `${v.origin} ·${v.usageCount}×` });
-				});
+					row.createSpan({ cls: "axxa-muted", text: `${v.usageCount}×` });
+				},
+			});
 		};
 		filter.oninput = draw;
 		draw();
@@ -438,14 +528,16 @@ export class InspectorView extends ItemView {
 		const card = this.bodyEl.createDiv({ cls: "axxa-card axxa-timeline" });
 		const events = mut.events;
 		card.createEl("h4", { text: `Timeline (${events.length})` });
-		[...events]
-			.reverse()
-			.slice(0, 200)
-			.forEach((e) => {
-				const row = card.createDiv({ cls: `axxa-mut axxa-mut-${e.kind}` });
+		renderCappedList(card.createDiv(), {
+			items: [...events].reverse(),
+			pageSize: 40,
+			emptyText: "No mutations captured. Press Record and interact with Obsidian.",
+			renderItem: (e, listEl) => {
+				const row = listEl.createDiv({ cls: `axxa-mut axxa-mut-${e.kind}` });
 				row.createSpan({ cls: "axxa-muted", text: new Date(e.timestamp).toLocaleTimeString() });
 				row.createSpan({ text: e.summary });
-			});
+			},
+		});
 
 		this.renderExportRow(this.bodyEl, "mutation-log", (format) =>
 			this.container.resolve(Tokens.Export).exportMutations(events, format),

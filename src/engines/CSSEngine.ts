@@ -5,6 +5,7 @@ import {
 	computeSpecificity,
 	specificityScore,
 } from "../utils/specificity";
+import { buildUniqueSelector } from "../utils/selector";
 import type {
 	ComputedStyleGroup,
 	MatchedRule,
@@ -43,6 +44,9 @@ export class CSSEngine implements IDisposable {
 	private readonly group = new DisposableGroup();
 	/** Per-element edit map keyed by a WeakRef-friendly token. */
 	private readonly edits = new WeakMap<HTMLElement, Map<string, CssEdit>>();
+	/** Enumerable, ordered registry of edited elements (drives the Changes
+	 * list + snippet export — WeakMap alone isn't iterable). */
+	private readonly editedOrder: HTMLElement[] = [];
 	/** Undo / redo stacks of (element, edit) pairs. */
 	private readonly undoStack: { el: HTMLElement; edit: CssEdit }[] = [];
 	private readonly redoStack: { el: HTMLElement; edit: CssEdit }[] = [];
@@ -152,18 +156,20 @@ export class CSSEngine implements IDisposable {
 
 	// ── Feature 3: live editing + undo/redo ────────────────────────────────────
 
-	/** Apply a live inline edit and push it onto the undo stack. */
+	/**
+	 * Apply a live inline edit and push it onto the undo stack. An empty
+	 * `newValue` clears the inline override (back to the cascade default).
+	 */
 	applyEdit(el: HTMLElement, property: string, newValue: string): void {
 		const previousValue = el.style.getPropertyValue(property);
-		el.style.setProperty(property, newValue);
+		if (newValue === "") el.style.removeProperty(property);
+		else el.style.setProperty(property, newValue);
 
 		const edit: CssEdit = { property, previousValue, newValue, timestamp: Date.now() };
-		let map = this.edits.get(el);
-		if (!map) {
-			map = new Map();
-			this.edits.set(el, map);
-		}
-		map.set(property, edit);
+		const map = this.mapFor(el);
+		if (newValue === "") map.delete(property);
+		else map.set(property, edit);
+		this.reconcile(el);
 
 		this.undoStack.push({ el, edit });
 		if (this.undoStack.length > this.maxHistorySize) this.undoStack.shift();
@@ -181,6 +187,7 @@ export class CSSEngine implements IDisposable {
 		if (edit.previousValue) el.style.setProperty(property, edit.previousValue);
 		else el.style.removeProperty(property);
 		map!.delete(property);
+		this.reconcile(el);
 		this.emitHistory();
 	}
 
@@ -193,6 +200,15 @@ export class CSSEngine implements IDisposable {
 			else el.style.removeProperty(property);
 		}
 		this.edits.delete(el);
+		this.reconcile(el);
+		this.emitHistory();
+	}
+
+	/** Reset every live edit on every element (Feature 3: Reset All). */
+	resetAll(): void {
+		for (const el of [...this.editedOrder]) this.resetElement(el);
+		this.undoStack.length = 0;
+		this.redoStack.length = 0;
 		this.emitHistory();
 	}
 
@@ -205,6 +221,7 @@ export class CSSEngine implements IDisposable {
 		else el.style.removeProperty(edit.property);
 		this.redoStack.push(last);
 		this.edits.get(el)?.delete(edit.property);
+		this.reconcile(el);
 		this.emitHistory();
 	}
 
@@ -213,14 +230,13 @@ export class CSSEngine implements IDisposable {
 		const next = this.redoStack.pop();
 		if (!next) return;
 		const { el, edit } = next;
-		el.style.setProperty(edit.property, edit.newValue);
+		if (edit.newValue === "") el.style.removeProperty(edit.property);
+		else el.style.setProperty(edit.property, edit.newValue);
 		this.undoStack.push(next);
-		let map = this.edits.get(el);
-		if (!map) {
-			map = new Map();
-			this.edits.set(el, map);
-		}
-		map.set(edit.property, edit);
+		const map = this.mapFor(el);
+		if (edit.newValue === "") map.delete(edit.property);
+		else map.set(edit.property, edit);
+		this.reconcile(el);
 		this.emitHistory();
 	}
 
@@ -229,6 +245,75 @@ export class CSSEngine implements IDisposable {
 	}
 	get canRedo(): boolean {
 		return this.redoStack.length > 0;
+	}
+
+	// ── Feature 3 + 13: changed-element registry & snippet export ───────────────
+
+	/** Current inline edits on an element (most recent value per property). */
+	getEdits(el: HTMLElement): CssEdit[] {
+		return Array.from(this.edits.get(el)?.values() ?? []);
+	}
+
+	/** Every element with live edits, newest first, pruning detached nodes. */
+	getEditedElements(): { element: HTMLElement; selector: string; edits: CssEdit[] }[] {
+		this.pruneDetached();
+		return [...this.editedOrder]
+			.reverse()
+			.map((element) => ({
+				element,
+				selector: safeSelector(element),
+				edits: this.getEdits(element),
+			}))
+			.filter((e) => e.edits.length > 0);
+	}
+
+	get changeCount(): number {
+		this.pruneDetached();
+		return this.editedOrder.length;
+	}
+
+	/**
+	 * Build a ready-to-use CSS snippet from every current edit — the
+	 * "export what's changed" deliverable. Each edited element becomes a rule
+	 * keyed by its generated selector.
+	 */
+	exportCurrentSnippet(): string {
+		const header =
+			"/* AXXA Inspector — exported live edits\n" +
+			`   ${new Date().toLocaleString()} · ${this.changeCount} element(s) */\n\n`;
+		const blocks = this.getEditedElements().map(({ selector, edits }) => {
+			const decls = edits.map((e) => `\t${e.property}: ${e.newValue};`).join("\n");
+			return `${selector} {\n${decls}\n}`;
+		});
+		return header + (blocks.join("\n\n") || "/* no live edits yet */");
+	}
+
+	private mapFor(el: HTMLElement): Map<string, CssEdit> {
+		let map = this.edits.get(el);
+		if (!map) {
+			map = new Map();
+			this.edits.set(el, map);
+		}
+		return map;
+	}
+
+	/** Keep editedOrder membership consistent with the per-element map size. */
+	private reconcile(el: HTMLElement): void {
+		const size = this.edits.get(el)?.size ?? 0;
+		const idx = this.editedOrder.indexOf(el);
+		if (size > 0 && idx === -1) this.editedOrder.push(el);
+		else if (size === 0 && idx !== -1) this.editedOrder.splice(idx, 1);
+		this.emitChanges();
+	}
+
+	private pruneDetached(): void {
+		for (let i = this.editedOrder.length - 1; i >= 0; i--) {
+			if (!this.editedOrder[i].isConnected) this.editedOrder.splice(i, 1);
+		}
+	}
+
+	private emitChanges(): void {
+		this.bus.emit("changes-updated", { count: this.editedOrder.length });
 	}
 
 	private emitHistory(): void {
@@ -346,6 +431,14 @@ export class CSSEngine implements IDisposable {
 }
 
 // ── module-private helpers ───────────────────────────────────────────────────
+
+function safeSelector(el: HTMLElement): string {
+	try {
+		return buildUniqueSelector(el);
+	} catch {
+		return el.tagName.toLowerCase();
+	}
+}
 
 function readDeclarations(style: CSSStyleDeclaration): CssDeclaration[] {
 	const decls: CssDeclaration[] = [];

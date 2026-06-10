@@ -7,6 +7,14 @@
 
 :root {
 	--axxa-ui-scale: 1;
+	/* Design tokens — one source of truth for the whole surface. */
+	--axxa-radius: 10px;
+	--axxa-radius-sm: 7px;
+	--axxa-gap: 8px;
+	--axxa-pad: 12px;
+	--axxa-touch: 38px;
+	--axxa-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+	--axxa-accent: var(--interactive-accent);
 }
 
 /* ── Overlay (Feature 1) ───────────────────────────────────────────────────── */
@@ -658,4 +666,209 @@ body.axxa-mobile .axxa-search {
 	.axxa-vt-flash {
 		animation: none;
 	}
+}
+
+/* ============================================================================
+   Design-system overhaul — refined, mobile-first product polish.
+   Rules below intentionally come last so they take precedence.
+   ========================================================================== */
+
+/* Tabs: a single horizontally-scrollable row with snap — never wraps or
+   crowds on a narrow phone screen. */
+.axxa-tabs {
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	scroll-snap-type: x proximity;
+	scrollbar-width: none;
+	-webkit-overflow-scrolling: touch;
+	gap: 4px;
+	padding: 6px 8px;
+}
+.axxa-tabs::-webkit-scrollbar {
+	display: none;
+}
+.axxa-tab {
+	flex: 0 0 auto;
+	scroll-snap-align: start;
+	min-height: var(--axxa-touch);
+	position: relative;
+}
+
+/* Cards: softer, more breathing room, subtle depth. */
+.axxa-card {
+	border-radius: var(--axxa-radius);
+	padding: var(--axxa-pad);
+	margin-bottom: var(--axxa-gap);
+	background: var(--background-primary-alt, var(--background-secondary));
+}
+.axxa-card h4 {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+}
+
+/* Buttons: bigger touch targets, clearer hierarchy. */
+.axxa-btn {
+	min-height: var(--axxa-touch);
+	border-radius: var(--axxa-radius-sm);
+	transition: background 0.12s ease, transform 0.06s ease;
+}
+.axxa-btn:active {
+	transform: scale(0.97);
+}
+.axxa-btn.mod-cta {
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	border-color: transparent;
+	font-weight: 600;
+}
+
+/* Count badge (Changes tab, snippet button, change rows). */
+.axxa-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 5px;
+	border-radius: 999px;
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1;
+}
+.axxa-tab .axxa-badge {
+	position: absolute;
+	top: 2px;
+	right: 2px;
+}
+.axxa-badge.is-hidden,
+.axxa-load-more.is-hidden {
+	display: none;
+}
+
+/* Incremental "small list" + load-more. */
+.axxa-list-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 6px;
+}
+.axxa-load-more {
+	flex: 1;
+}
+.axxa-empty-row {
+	padding: 16px 8px;
+	text-align: center;
+}
+
+/* Changes list rows. */
+.axxa-change {
+	border-top: 1px solid var(--background-modifier-border);
+	padding: 8px 0;
+}
+.axxa-change:first-child {
+	border-top: none;
+}
+.axxa-change-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.axxa-change-jump {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--text-normal);
+	text-align: left;
+	padding: 4px 0;
+	min-height: var(--axxa-touch);
+}
+.axxa-change-label {
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	color: var(--text-accent);
+	word-break: break-all;
+}
+.axxa-icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--axxa-touch);
+	height: var(--axxa-touch);
+	border-radius: var(--axxa-radius-sm);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.axxa-icon-btn:hover {
+	background: var(--interactive-hover);
+	color: var(--text-normal);
+}
+
+/* On-screen debug log. */
+.axxa-debuglog {
+	left: 12px;
+	right: 12px;
+	bottom: 12px;
+	width: auto;
+	max-width: 520px;
+	margin: 0 auto;
+}
+.axxa-debuglog-actions {
+	display: flex;
+	gap: 2px;
+}
+.axxa-debuglog-list {
+	max-height: 38vh;
+	overflow-y: auto;
+	font-family: var(--font-monospace);
+	font-size: 10px;
+	touch-action: pan-y;
+}
+.axxa-debug-line {
+	display: flex;
+	gap: 6px;
+	padding: 2px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.axxa-debug-time {
+	color: var(--text-faint);
+	flex: 0 0 auto;
+}
+.axxa-debug-level {
+	flex: 0 0 52px;
+	text-transform: uppercase;
+	font-weight: 700;
+	color: var(--text-muted);
+}
+.axxa-debug-msg {
+	flex: 1;
+	word-break: break-word;
+}
+.axxa-debug-error .axxa-debug-level,
+.axxa-debug-error .axxa-debug-msg {
+	color: var(--text-error);
+}
+.axxa-debug-edit .axxa-debug-level {
+	color: var(--text-accent);
+}
+
+/* Larger phone-friendly hit targets everywhere when running on mobile. */
+body.axxa-mobile .axxa-btn,
+body.axxa-mobile .axxa-style-select,
+body.axxa-mobile .axxa-prop-val,
+body.axxa-mobile .axxa-search,
+body.axxa-mobile .axxa-chip {
+	min-height: 40px;
+}
+body.axxa-mobile .axxa-style-key {
+	flex-basis: 38%;
 }

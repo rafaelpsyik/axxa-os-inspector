@@ -21,6 +21,8 @@ export type AxxaEventMap = {
 	"navigate-to-element": { element: HTMLElement };
 	/** A live CSS edit was applied. */
 	"css-edited": { element: HTMLElement; edit: CssEdit };
+	/** The set of edited elements changed (drives the Changes badge/list). */
+	"changes-updated": { count: number };
 	/** Undo/redo history changed (drives button enabled state). */
 	"history-changed": { canUndo: boolean; canRedo: boolean };
 	/** A new mutation event was recorded. */
