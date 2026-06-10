@@ -3,6 +3,7 @@ import { EventBus } from "../core/EventBus";
 import type { AxxaEventMap } from "../types/events";
 import type { OverlayManager } from "./OverlayManager";
 import { throttle, type Cancellable } from "../utils/schedule";
+import { isTouchPrimary } from "../utils/platform";
 
 /**
  * Inspector Engine — drives Interactive Inspect Mode (Feature 1).
@@ -68,16 +69,21 @@ export class InspectorEngine implements IDisposable {
 
 	private attach(): void {
 		const onPointerMove = (e: Event) => this.onMove(e as PointerEvent);
+		const onPointerDown = (e: Event) => this.handlePointerDown(e as PointerEvent);
 		const onClick = (e: Event) => this.handleClick(e as PointerEvent);
 		const onKey = (e: Event) => this.handleKey(e as KeyboardEvent);
 
 		// Capture phase so we see events before Obsidian's own handlers and can
 		// preventDefault on the inspecting click.
 		document.addEventListener("pointermove", onPointerMove, true);
+		// Touch devices have no hover: a tap (pointerdown) must immediately show
+		// what is under the finger so the user can confirm before selecting.
+		document.addEventListener("pointerdown", onPointerDown, true);
 		document.addEventListener("click", onClick, true);
 		document.addEventListener("keydown", onKey, true);
 		this.group.register(() => {
 			document.removeEventListener("pointermove", onPointerMove, true);
+			document.removeEventListener("pointerdown", onPointerDown, true);
 			document.removeEventListener("click", onClick, true);
 			document.removeEventListener("keydown", onKey, true);
 		});
@@ -101,6 +107,21 @@ export class InspectorEngine implements IDisposable {
 			this.bus.emit("hover-element", { element: null });
 			return;
 		}
+		this.overlay.highlight(el);
+		this.bus.emit("hover-element", { element: el });
+	}
+
+	/**
+	 * Touch tap feedback. On touch-primary devices there is no hover, so the
+	 * first tap un-freezes any prior selection and highlights what is under the
+	 * finger; the subsequent `click` confirms the selection. On mouse devices
+	 * this is a no-op (hover already drives the highlight).
+	 */
+	private handlePointerDown(e: PointerEvent): void {
+		if (!isTouchPrimary() && e.pointerType !== "touch") return;
+		const el = this.elementAt(e);
+		if (!el) return;
+		this.frozen = null; // allow re-targeting with a new tap
 		this.overlay.highlight(el);
 		this.bus.emit("hover-element", { element: el });
 	}

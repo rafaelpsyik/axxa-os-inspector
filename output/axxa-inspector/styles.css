@@ -1,0 +1,387 @@
+/* ============================================================================
+   AXXA Inspector — styles
+   All selectors are namespaced under `.axxa-*` or applied to <body> via a
+   plugin-scoped class so nothing here leaks into Obsidian's own UI. Colours
+   defer to Obsidian theme variables wherever possible for theme-awareness.
+   ========================================================================== */
+
+:root {
+	--axxa-ui-scale: 1;
+}
+
+/* ── Overlay (Feature 1) ───────────────────────────────────────────────────── */
+
+.axxa-overlay-root {
+	position: fixed;
+	inset: 0;
+	z-index: var(--layer-popover, 30);
+	pointer-events: none;
+	contain: layout style;
+}
+
+.axxa-overlay-root > div {
+	position: fixed;
+	top: 0;
+	left: 0;
+	pointer-events: none;
+	box-sizing: border-box;
+}
+
+.axxa-overlay-content {
+	outline: 1px solid var(--interactive-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
+}
+
+.axxa-overlay-padding {
+	border-style: solid;
+	border-color: color-mix(in srgb, #7bc86c 45%, transparent);
+}
+
+.axxa-overlay-margin {
+	border-style: solid;
+	border-color: color-mix(in srgb, #f2a23c 40%, transparent);
+}
+
+.axxa-overlay-tooltip {
+	position: fixed;
+	padding: 2px 6px;
+	font-size: 11px;
+	font-family: var(--font-monospace);
+	background: var(--background-modifier-message, #222);
+	color: #fff;
+	border-radius: 4px;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+body.axxa-inspecting,
+body.axxa-inspecting * {
+	cursor: crosshair !important;
+}
+
+body.axxa-high-contrast .axxa-overlay-content {
+	outline-width: 2px;
+}
+
+/* ── Inspector panel ──────────────────────────────────────────────────────── */
+
+.axxa-inspector-view {
+	font-size: calc(var(--font-ui-small) * var(--axxa-ui-scale));
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow-y: auto;
+}
+
+.axxa-header {
+	display: flex;
+	gap: 6px;
+	padding: 8px;
+	position: sticky;
+	top: 0;
+	background: var(--background-secondary);
+	z-index: 2;
+}
+
+.axxa-breadcrumb {
+	padding: 4px 8px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	flex-wrap: wrap;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.axxa-crumb {
+	background: none;
+	border: none;
+	color: var(--text-accent);
+	cursor: pointer;
+	padding: 1px 3px;
+	border-radius: 3px;
+}
+.axxa-crumb:hover {
+	background: var(--background-modifier-hover);
+}
+
+.axxa-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.axxa-tab {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	background: none;
+	border: none;
+	padding: 4px 8px;
+	border-radius: 6px;
+	cursor: pointer;
+	color: var(--text-muted);
+}
+.axxa-tab:hover {
+	background: var(--background-modifier-hover);
+}
+.axxa-tab.is-active {
+	background: var(--background-modifier-active-hover);
+	color: var(--text-normal);
+}
+.axxa-tab-icon {
+	display: inline-flex;
+}
+
+.axxa-body {
+	padding: 8px;
+	flex: 1;
+}
+
+.axxa-card {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 10px;
+	margin-bottom: 10px;
+}
+.axxa-card h4 {
+	margin: 0 0 8px;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-muted);
+}
+
+.axxa-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 10px;
+	border-radius: 6px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	cursor: pointer;
+}
+.axxa-btn:hover {
+	background: var(--interactive-hover);
+}
+.axxa-btn.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+.axxa-btn.mod-warning {
+	border-color: var(--text-error);
+	color: var(--text-error);
+}
+.axxa-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.axxa-btn-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.axxa-muted {
+	color: var(--text-faint);
+}
+
+.axxa-empty {
+	padding: 24px;
+	text-align: center;
+	color: var(--text-muted);
+}
+
+/* box model + property rows */
+.axxa-boxmodel {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 4px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+}
+
+.axxa-prop-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 2px 0;
+}
+.axxa-prop-row.is-edited .axxa-prop-key {
+	color: var(--text-accent);
+	font-weight: 600;
+}
+.axxa-prop-key {
+	flex: 0 0 40%;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-prop-val,
+.axxa-search {
+	flex: 1;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 2px 6px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-normal);
+}
+.axxa-search {
+	width: 100%;
+	margin-bottom: 8px;
+}
+
+/* matched rules */
+.axxa-rule {
+	border-top: 1px solid var(--background-modifier-border);
+	padding: 6px 0;
+}
+.axxa-rule-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+.axxa-rule-selector {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+}
+.axxa-decl {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	padding-left: 12px;
+	color: var(--text-muted);
+}
+.axxa-decl.is-overridden {
+	text-decoration: line-through;
+	opacity: 0.55;
+}
+
+.axxa-origin {
+	font-size: 10px;
+	padding: 1px 5px;
+	border-radius: 4px;
+	text-transform: uppercase;
+	background: var(--background-modifier-border);
+}
+.axxa-origin-theme { background: #4c6ef5; color: #fff; }
+.axxa-origin-snippet { background: #7bc86c; color: #06250a; }
+.axxa-origin-plugin { background: #b07be0; color: #fff; }
+.axxa-origin-user-experiment { background: #f2a23c; color: #2b1700; }
+.axxa-origin-inline { background: #888; color: #fff; }
+
+/* DOM tree / search */
+.axxa-tree-node {
+	display: block;
+	width: 100%;
+	text-align: left;
+	background: none;
+	border: none;
+	padding: 3px 4px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-normal);
+	cursor: pointer;
+	border-radius: 4px;
+}
+.axxa-tree-node:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* mutation timeline */
+.axxa-mut {
+	display: flex;
+	gap: 8px;
+	padding: 3px 0;
+	font-size: 11px;
+	border-left: 3px solid transparent;
+	padding-left: 6px;
+}
+.axxa-mut-element-added { border-color: #7bc86c; }
+.axxa-mut-element-removed { border-color: var(--text-error); }
+.axxa-mut-class-modified { border-color: #4c6ef5; }
+.axxa-mut-style-changed { border-color: #f2a23c; }
+.axxa-mut-attribute-changed { border-color: #888; }
+
+/* css editor */
+.axxa-css-editor {
+	width: 100%;
+	min-height: 90px;
+	margin-top: 6px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 6px;
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	color: var(--text-normal);
+	resize: vertical;
+}
+
+/* ── Visual identification (Feature 4) ────────────────────────────────────── */
+.axxa-vt-red { outline: 3px solid #ff3b30 !important; outline-offset: -1px; }
+.axxa-vt-green { outline: 3px solid #34c759 !important; outline-offset: -1px; }
+.axxa-vt-blue { outline: 3px solid #0a84ff !important; outline-offset: -1px; }
+.axxa-vt-outline { outline: 2px dashed var(--interactive-accent) !important; }
+.axxa-vt-hidden { visibility: hidden !important; }
+.axxa-vt-focus { outline: 3px solid var(--interactive-accent) !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.35) !important; }
+
+.axxa-vt-pulse { animation: axxa-pulse 1s ease-in-out infinite; }
+.axxa-vt-flash { animation: axxa-flash 0.6s ease-out; }
+
+@keyframes axxa-pulse {
+	0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--interactive-accent) 70%, transparent); }
+	50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--interactive-accent) 0%, transparent); }
+}
+@keyframes axxa-flash {
+	0% { background-color: var(--interactive-accent); }
+	100% { background-color: transparent; }
+}
+
+/* dim others */
+body.axxa-dim-active *:not(.axxa-dim-keep):not(.axxa-overlay-root):not(.axxa-inspector-view) {
+	opacity: 0.15;
+	transition: opacity 0.2s ease;
+}
+
+/* ── Isolation mode (Feature 5) ───────────────────────────────────────────── */
+.axxa-isolation-hidden {
+	display: none !important;
+}
+
+/* ── Layout debugging (Feature 10) ────────────────────────────────────────── */
+.axxa-layout-flex-containers { outline: 1px dashed #e64980 !important; }
+.axxa-layout-grid-containers { outline: 1px dashed #7048e8 !important; }
+.axxa-layout-scroll-containers { outline: 1px solid #1098ad !important; }
+.axxa-layout-sticky-elements { outline: 2px solid #f59f00 !important; }
+.axxa-layout-fixed-elements { outline: 2px solid #e8590c !important; }
+.axxa-layout-absolute-elements { outline: 1px dotted #2f9e44 !important; }
+.axxa-layout-overflow-boundaries { outline: 1px solid #c2255c !important; }
+.axxa-layout-stacking-contexts { outline: 1px solid #9c36b5 !important; }
+.axxa-layout-padding-regions { box-shadow: inset 0 0 0 99px color-mix(in srgb, #7bc86c 8%, transparent); }
+.axxa-layout-margins { outline: 1px solid color-mix(in srgb, #f2a23c 60%, transparent) !important; }
+.axxa-layout-safe-areas { outline: 2px dashed #099268 !important; }
+
+/* ── Mobile (Feature 18) ──────────────────────────────────────────────────── */
+body.axxa-mobile .axxa-btn {
+	padding: 8px 12px;
+	min-height: 36px;
+}
+body.axxa-mobile .axxa-prop-val,
+body.axxa-mobile .axxa-search {
+	min-height: 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.axxa-vt-pulse,
+	.axxa-vt-flash {
+		animation: none;
+	}
+}
