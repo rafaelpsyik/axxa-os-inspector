@@ -7,6 +7,8 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"package": "npm run build && node scripts/copy-output.mjs",
+		"prepare": "git config core.hooksPath .githooks || true",
 		"typecheck": "tsc -noEmit -skipLibCheck",
 		"lint": "eslint src --ext .ts",
 		"test": "vitest run",
