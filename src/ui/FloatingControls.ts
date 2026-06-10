@@ -3,6 +3,7 @@ import { DisposableGroup, type IDisposable } from "../core/Disposable";
 import type { ServiceContainer } from "../core/ServiceContainer";
 import { Tokens } from "../core/tokens";
 import { buildUniqueSelector } from "../utils/selector";
+import { renderStyleEditor } from "./StyleEditor";
 
 /**
  * Floating, always-on-top inspector controls.
@@ -28,6 +29,9 @@ export class FloatingControls implements IDisposable {
 	private freezeBtn!: HTMLButtonElement;
 	private navButtons: Record<"parent" | "child" | "previous" | "next", HTMLButtonElement> =
 		{} as never;
+	private stylesToggle!: HTMLButtonElement;
+	private stylesEl!: HTMLElement;
+	private stylesOpen = false;
 	private visible = false;
 
 	constructor(
@@ -43,6 +47,7 @@ export class FloatingControls implements IDisposable {
 		this.buildPrimaryRow();
 		this.buildLabel();
 		this.buildNav();
+		this.buildStyles();
 
 		// Reflect engine state in the widget.
 		const { bus } = this.container;
@@ -135,6 +140,38 @@ export class FloatingControls implements IDisposable {
 		return btn;
 	}
 
+	/** Expandable list-driven style editor (dropdowns + colour swatches). */
+	private buildStyles(): void {
+		this.stylesToggle = this.root.createEl("button", { cls: "axxa-floating-btn axxa-styles-toggle" });
+		setIcon(this.stylesToggle.createSpan(), "sliders-horizontal");
+		this.stylesToggle.createSpan({ text: "Styles" });
+		this.stylesToggle.onclick = () => {
+			this.stylesOpen = !this.stylesOpen;
+			this.root.toggleClass("axxa-floating-wide", this.stylesOpen);
+			this.renderStyles();
+		};
+		this.stylesEl = this.root.createDiv({ cls: "axxa-floating-styles" });
+		this.stylesEl.style.display = "none";
+	}
+
+	/** (Re)render the style editor for the current selection when expanded. */
+	private renderStyles(): void {
+		const el = this.container.resolve(Tokens.Inspector).selected;
+		this.stylesToggle.toggleClass("is-active", this.stylesOpen);
+		if (!this.stylesOpen || !el) {
+			this.stylesEl.style.display = "none";
+			this.stylesEl.empty();
+			return;
+		}
+		this.stylesEl.style.display = "block";
+		renderStyleEditor(this.stylesEl, {
+			element: el,
+			css: this.container.resolve(Tokens.Css),
+			// After a change the swatch/edited markers must refresh.
+			onChange: () => this.renderStyles(),
+		});
+	}
+
 	// ── state sync ──────────────────────────────────────────────────────────────
 
 	private syncFreeze(active: boolean): void {
@@ -170,6 +207,9 @@ export class FloatingControls implements IDisposable {
 		enable(this.navButtons.child, !!el.firstElementChild);
 		enable(this.navButtons.previous, !!el.previousElementSibling);
 		enable(this.navButtons.next, !!el.nextElementSibling);
+
+		// Keep the expanded style editor pointed at the new selection.
+		if (this.stylesOpen) this.renderStyles();
 	}
 
 	// ── dragging ──────────────────────────────────────────────────────────────

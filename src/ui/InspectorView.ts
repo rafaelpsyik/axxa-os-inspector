@@ -8,6 +8,7 @@ import { computeBoxModel } from "../utils/dom";
 import { formatSpecificity } from "../utils/specificity";
 import type { VisualTestAction } from "../types/experiment";
 import type { ExportFormat } from "../types/export";
+import { renderStyleEditor } from "./StyleEditor";
 
 export const AXXA_VIEW_TYPE = "axxa-inspector-view";
 
@@ -273,20 +274,15 @@ export class InspectorView extends ItemView {
 			this.renderBody();
 		};
 
-		// Editable computed styles
-		for (const grp of css.getComputedStyleGroups(el)) {
-			const card = this.bodyEl.createDiv({ cls: "axxa-card" });
-			card.createEl("h4", { text: grp.label });
-			for (const entry of grp.properties) {
-				const row = card.createDiv({ cls: "axxa-prop-row" });
-				row.toggleClass("is-edited", entry.isUserEdited);
-				row.createSpan({ cls: "axxa-prop-key", text: entry.property });
-				const input = row.createEl("input", { cls: "axxa-prop-val" });
-				input.value = entry.value;
-				input.setAttr("aria-label", `${entry.property} value`);
-				input.onchange = () => css.applyEdit(el, entry.property, input.value);
-			}
-		}
+		// List-driven visual style editor (dropdowns + colour swatches + quick
+		// toggles) — shared with the floating mobile controls.
+		const editorCard = this.bodyEl.createDiv({ cls: "axxa-card" });
+		editorCard.createEl("h4", { text: "Edit styles" });
+		renderStyleEditor(editorCard.createDiv(), {
+			element: el,
+			css,
+			onChange: () => this.renderBody(),
+		});
 
 		// Matched rules with origin + specificity
 		const rules = css.getMatchedRules(el);

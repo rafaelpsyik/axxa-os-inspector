@@ -14,9 +14,12 @@
 .axxa-overlay-root {
 	position: fixed;
 	inset: 0;
-	z-index: var(--layer-popover, 30);
+	width: 100vw;
+	height: 100vh;
+	/* Draw above Obsidian chrome (status bar / mobile swipe bar inherit a high
+	   z-index from the inner workspace) so the highlight is never clipped. */
+	z-index: 9999;
 	pointer-events: none;
-	contain: layout style;
 }
 
 .axxa-overlay-root > div {
@@ -26,6 +29,11 @@
 	pointer-events: none;
 	box-sizing: border-box;
 }
+/* Box-model layers stacked margin → padding → content → tooltip. */
+.axxa-overlay-margin { z-index: 1; }
+.axxa-overlay-padding { z-index: 2; }
+.axxa-overlay-content { z-index: 3; }
+.axxa-overlay-tooltip { z-index: 4; }
 
 .axxa-overlay-content {
 	outline: 1px solid var(--interactive-accent);
@@ -514,6 +522,113 @@ body.axxa-dim-active *:not(.axxa-dim-keep):not(.axxa-overlay-root):not(.axxa-ins
 	width: 38px;
 	height: 38px;
 	color: var(--text-faint);
+}
+
+.axxa-floating.axxa-floating-wide {
+	width: 280px;
+}
+.axxa-styles-toggle.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: transparent;
+}
+.axxa-floating-styles {
+	max-height: 46vh;
+	overflow-y: auto;
+	overflow-x: hidden;
+	touch-action: pan-y;
+}
+
+/* ── Visual style editor (dropdowns + colour swatches + quick toggles) ─────── */
+
+.axxa-style-editor {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.axxa-style-toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.axxa-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 5px 8px;
+	min-height: 32px;
+	border-radius: 999px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	font-size: 11px;
+	cursor: pointer;
+}
+.axxa-chip:hover {
+	background: var(--interactive-hover);
+}
+.axxa-chip.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: transparent;
+}
+.axxa-chip.mod-warning {
+	border-color: var(--text-error);
+	color: var(--text-error);
+}
+.axxa-chip-icon {
+	display: inline-flex;
+}
+
+.axxa-style-group {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 6px;
+}
+.axxa-style-group-label {
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-faint);
+	margin-bottom: 4px;
+}
+.axxa-style-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 0;
+}
+.axxa-style-row.is-edited .axxa-style-key {
+	color: var(--text-accent);
+	font-weight: 600;
+}
+.axxa-style-key {
+	flex: 0 0 42%;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-style-swatch {
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	border: 1px solid var(--background-modifier-border);
+	flex: 0 0 auto;
+}
+.axxa-style-select {
+	flex: 1;
+	min-width: 0;
+	min-height: 32px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 3px 6px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-normal);
 }
 
 /* Whole-screen "frozen" indicator — clear visual feedback that taps are being
