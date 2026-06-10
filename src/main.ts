@@ -14,6 +14,7 @@ import { ExportEngine } from "./engines/ExportEngine";
 import { ExperimentSandbox } from "./engines/ExperimentSandbox";
 import { LayoutDebugger } from "./engines/LayoutDebugger";
 import { InspectorView, AXXA_VIEW_TYPE } from "./ui/InspectorView";
+import { FloatingControls } from "./ui/FloatingControls";
 import { AxxaSettingsTab } from "./settings/SettingsTab";
 import { isMobile } from "./utils/platform";
 import type { AxxaPluginData } from "./types/settings";
@@ -29,6 +30,7 @@ import type { AxxaPluginData } from "./types/settings";
  */
 export default class AxxaInspectorPlugin extends Plugin {
 	private container!: ServiceContainer;
+	private floating!: FloatingControls;
 	persistence!: PersistenceLayer;
 
 	async onload(): Promise<void> {
@@ -90,6 +92,7 @@ export default class AxxaInspectorPlugin extends Plugin {
 
 	onunload(): void {
 		this.app.workspace.detachLeavesOfType(AXXA_VIEW_TYPE);
+		this.floating?.dispose();
 		this.container?.dispose();
 	}
 
@@ -108,8 +111,17 @@ export default class AxxaInspectorPlugin extends Plugin {
 			(leaf: WorkspaceLeaf) => new InspectorView(leaf, this.container),
 		);
 
-		// Ribbon icon to open the panel.
+		// Floating, always-on-top controls (Freeze + DOM navigation arrows).
+		// Created here so it exists before any command/ribbon can reveal it.
+		this.floating = new FloatingControls(this.container, () => void this.activateView());
+
+		// Ribbon icons.
 		this.addRibbonIcon("scan-search", "Open AXXA Inspector", () => void this.activateView());
+		this.addRibbonIcon("move", "AXXA: floating inspector controls", () => {
+			this.floating.show();
+			// Showing the controls without inspect mode is useless, so arm it.
+			this.container.resolve(Tokens.Inspector).setActive(true);
+		});
 
 		this.addSettingTab(new AxxaSettingsTab(this.app, this));
 
@@ -127,6 +139,11 @@ export default class AxxaInspectorPlugin extends Plugin {
 				inspector.setActive(!inspector.isActive);
 				void this.activateView();
 			},
+		});
+		this.addCommand({
+			id: "toggle-floating-controls",
+			name: "Toggle floating controls (Freeze + arrows)",
+			callback: () => this.floating.toggle(),
 		});
 		this.addCommand({
 			id: "exit-isolation",

@@ -67,6 +67,36 @@ export class InspectorEngine implements IDisposable {
 		this.bus.emit("selection-changed", { element: null });
 	}
 
+	/**
+	 * Walk the DOM from the current selection using the floating arrow controls
+	 * (Feature 1 navigation). Returns false when there is no element in that
+	 * direction so the UI can disable the corresponding arrow.
+	 */
+	navigate(direction: "parent" | "child" | "next" | "previous"): boolean {
+		const el = this.selection;
+		if (!el) return false;
+		let target: Element | null = null;
+		switch (direction) {
+			case "parent":
+				target = el.parentElement;
+				break;
+			case "child":
+				target = el.firstElementChild;
+				break;
+			case "next":
+				target = el.nextElementSibling;
+				break;
+			case "previous":
+				target = el.previousElementSibling;
+				break;
+		}
+		if (target instanceof HTMLElement) {
+			this.select(target);
+			return true;
+		}
+		return false;
+	}
+
 	private attach(): void {
 		const onPointerMove = (e: Event) => this.onMove(e as PointerEvent);
 		const onPointerDown = (e: Event) => this.handlePointerDown(e as PointerEvent);
@@ -149,7 +179,7 @@ export class InspectorEngine implements IDisposable {
 	private elementAt(e: PointerEvent): HTMLElement | null {
 		const target = document.elementFromPoint(e.clientX, e.clientY);
 		if (!(target instanceof HTMLElement)) return null;
-		if (target.closest(".axxa-overlay-root, .axxa-inspector-view, .axxa-panel")) {
+		if (target.closest(".axxa-overlay-root, .axxa-inspector-view, .axxa-panel, .axxa-floating")) {
 			return null;
 		}
 		return target;

@@ -43,16 +43,29 @@ destas abordagens:
    `Android/.../seu-cofre/.obsidian/plugins/` usando um gerenciador de arquivos.
 2. Abra o Obsidian → ative o plugin.
 
-### Como inspecionar no toque (touch)
-- Ative o **modo inspeção** (botão *Inspect* no topo do painel ou o comando
-  *"Toggle inspect mode"*).
-- **Toque** no elemento que quer analisar: o destaque aparece imediatamente
-  sob o dedo (não depende de hover).
-- O segundo toque/click **congela a seleção** e abre os detalhes
-  (box model, estilos, regras, variáveis…).
-- Toque em outro elemento para re-mirar; use **Exit / Escape** para sair.
-- Ative *Graceful degradation* nas configurações para esconder recursos
-  pesados de desktop e usar alvos de toque maiores (≥ 36 px).
+### Como inspecionar no toque (touch) — menu flutuante
+
+No mobile o painel ocupa a tela inteira, então use o **menu flutuante** que
+fica por cima do app real:
+
+1. Toque no ícone de faixa **"AXXA: floating inspector controls"** (ícone de
+   mover) — ou rode o comando *"Toggle floating controls (Freeze + arrows)"*.
+2. Ative o **Freeze** 🔒. A tela ganha uma **borda vermelha** indicando que está
+   congelada: a partir daí, **os toques não acionam comandos do Obsidian** — eles
+   apenas **selecionam** o elemento sob o dedo no inspetor.
+3. **Toque** no elemento que quer analisar — o nome/seletor e o tamanho
+   aparecem no próprio menu flutuante (feedback imediato, sem abrir o painel).
+4. Use as **setas** para navegar no DOM sem precisar de precisão no toque:
+   - ⬆️ elemento **pai**
+   - ⬇️ primeiro **filho**
+   - ⬅️ irmão **anterior** · ➡️ próximo **irmão**
+5. Toque em **Panel** para abrir os detalhes completos (estilos, regras,
+   variáveis, etc.), ou desative o **Freeze** para voltar a usar o Obsidian.
+
+> O menu flutuante é **arrastável** (segure a barra "AXXA Inspector" e mova)
+> para não cobrir o que você está inspecionando.
+> Dica: ative *Graceful degradation* nas configurações para alvos de toque
+> maiores (≥ 36 px).
 
 > Dica mobile: a faixa de overlay (content/padding/margin) e o tooltip de
 > tamanho + z-index funcionam igual ao desktop, ideais para depurar barra de

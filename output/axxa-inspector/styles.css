@@ -369,6 +369,150 @@ body.axxa-dim-active *:not(.axxa-dim-keep):not(.axxa-overlay-root):not(.axxa-ins
 .axxa-layout-margins { outline: 1px solid color-mix(in srgb, #f2a23c 60%, transparent) !important; }
 .axxa-layout-safe-areas { outline: 2px dashed #099268 !important; }
 
+/* ── Floating controls (Freeze + DOM navigation arrows) ───────────────────── */
+
+.axxa-floating {
+	position: fixed;
+	right: 12px;
+	bottom: 12px;
+	z-index: 2147483000; /* above modals, popovers and the overlay */
+	display: none; /* toggled to flex */
+	flex-direction: column;
+	gap: 6px;
+	width: 190px;
+	padding: 8px;
+	border-radius: 12px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+	font-size: 12px;
+	color: var(--text-normal);
+	touch-action: none; /* let us own drag gestures */
+	user-select: none;
+}
+
+.axxa-floating-handle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	cursor: grab;
+	font-weight: 600;
+	font-size: 11px;
+	color: var(--text-muted);
+	padding-bottom: 2px;
+}
+.axxa-floating-handle:active {
+	cursor: grabbing;
+}
+.axxa-floating-x {
+	background: none;
+	border: none;
+	color: var(--text-faint);
+	cursor: pointer;
+	display: inline-flex;
+	padding: 2px;
+	border-radius: 4px;
+}
+.axxa-floating-x:hover {
+	background: var(--background-modifier-hover);
+}
+
+.axxa-floating-row {
+	display: flex;
+	gap: 6px;
+}
+.axxa-floating-btn {
+	flex: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 8px 6px;
+	min-height: 38px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	cursor: pointer;
+}
+.axxa-floating-btn:hover {
+	background: var(--interactive-hover);
+}
+.axxa-floating-btn.axxa-freeze.is-active {
+	background: var(--color-red, #e5484d);
+	color: #fff;
+	border-color: transparent;
+}
+
+.axxa-floating-readout {
+	padding: 6px 8px;
+	border-radius: 8px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+}
+.axxa-floating-label {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	word-break: break-all;
+	color: var(--text-accent);
+}
+.axxa-floating-meta {
+	font-size: 10px;
+	color: var(--text-faint);
+	margin-top: 2px;
+}
+
+.axxa-floating-nav {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+.axxa-floating-nav-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+.axxa-floating-nav-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 38px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	cursor: pointer;
+}
+.axxa-floating-nav-btn:hover:not(:disabled) {
+	background: var(--interactive-hover);
+}
+.axxa-floating-nav-btn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+.axxa-floating-dot {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	color: var(--text-faint);
+}
+
+/* Whole-screen "frozen" indicator — clear visual feedback that taps are being
+   captured for selection instead of reaching Obsidian. */
+body.axxa-frozen::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 2147482000;
+	border: 2px solid var(--color-red, #e5484d);
+	box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-red, #e5484d) 25%, transparent);
+}
+
 /* ── Mobile (Feature 18) ──────────────────────────────────────────────────── */
 body.axxa-mobile .axxa-btn {
 	padding: 8px 12px;
