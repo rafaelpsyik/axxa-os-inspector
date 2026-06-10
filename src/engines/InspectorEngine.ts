@@ -3,7 +3,6 @@ import { EventBus } from "../core/EventBus";
 import type { AxxaEventMap } from "../types/events";
 import type { OverlayManager } from "./OverlayManager";
 import { throttle, type Cancellable } from "../utils/schedule";
-import { isTouchPrimary } from "../utils/platform";
 
 /**
  * Inspector Engine — drives Interactive Inspect Mode (Feature 1).
@@ -100,20 +99,24 @@ export class InspectorEngine implements IDisposable {
 	private attach(): void {
 		const onPointerMove = (e: Event) => this.onMove(e as PointerEvent);
 		const onPointerDown = (e: Event) => this.handlePointerDown(e as PointerEvent);
+		const onPointerUp = (e: Event) => this.handlePointerUp(e as PointerEvent);
 		const onClick = (e: Event) => this.handleClick(e as PointerEvent);
 		const onKey = (e: Event) => this.handleKey(e as KeyboardEvent);
 
-		// Capture phase so we see events before Obsidian's own handlers and can
-		// preventDefault on the inspecting click.
+		// Capture phase so we intercept BEFORE Obsidian's own handlers. On touch
+		// Obsidian reacts to pointerdown/touchstart (swipe to open sidebars,
+		// scroll, long-press menus) — so to truly "freeze" the screen we must
+		// preventDefault + stopPropagation at pointerdown AND pointerup, not just
+		// on click. `touch-action: none` (body.axxa-inspecting) blocks scroll/zoom.
 		document.addEventListener("pointermove", onPointerMove, true);
-		// Touch devices have no hover: a tap (pointerdown) must immediately show
-		// what is under the finger so the user can confirm before selecting.
 		document.addEventListener("pointerdown", onPointerDown, true);
+		document.addEventListener("pointerup", onPointerUp, true);
 		document.addEventListener("click", onClick, true);
 		document.addEventListener("keydown", onKey, true);
 		this.group.register(() => {
 			document.removeEventListener("pointermove", onPointerMove, true);
 			document.removeEventListener("pointerdown", onPointerDown, true);
+			document.removeEventListener("pointerup", onPointerUp, true);
 			document.removeEventListener("click", onClick, true);
 			document.removeEventListener("keydown", onKey, true);
 		});
@@ -142,26 +145,40 @@ export class InspectorEngine implements IDisposable {
 	}
 
 	/**
-	 * Touch tap feedback. On touch-primary devices there is no hover, so the
-	 * first tap un-freezes any prior selection and highlights what is under the
-	 * finger; the subsequent `click` confirms the selection. On mouse devices
-	 * this is a no-op (hover already drives the highlight).
+	 * Down: swallow the gesture so Obsidian never sees it, and immediately
+	 * highlight what's under the pointer/finger so the user gets feedback before
+	 * committing. Events over AXXA's own UI pass through untouched.
 	 */
 	private handlePointerDown(e: PointerEvent): void {
-		if (!isTouchPrimary() && e.pointerType !== "touch") return;
 		const el = this.elementAt(e);
-		if (!el) return;
-		this.frozen = null; // allow re-targeting with a new tap
+		if (!el) return; // over our own UI — let it work normally
+		e.preventDefault();
+		e.stopPropagation();
+		this.frozen = null; // allow re-targeting with a new press
 		this.overlay.highlight(el);
 		this.bus.emit("hover-element", { element: el });
 	}
 
-	private handleClick(e: PointerEvent): void {
+	/**
+	 * Up: this is where selection commits (works identically for mouse and
+	 * touch, and doesn't depend on a synthesized `click` that touch-action /
+	 * preventDefault may suppress).
+	 */
+	private handlePointerUp(e: PointerEvent): void {
 		const el = this.elementAt(e);
 		if (!el) return;
 		e.preventDefault();
 		e.stopPropagation();
 		this.select(el);
+	}
+
+	/** Click is selection-neutral now — we only swallow it so Obsidian never
+	 * receives the tap that already drove a selection. */
+	private handleClick(e: PointerEvent): void {
+		const el = this.elementAt(e);
+		if (!el) return;
+		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	private handleKey(e: KeyboardEvent): void {

@@ -59,6 +59,21 @@ body.axxa-inspecting * {
 	cursor: crosshair !important;
 }
 
+/* While inspecting/frozen, block the browser's own touch gestures (scroll,
+   pinch-zoom, swipe) so the screen is truly frozen on touch devices. AXXA's own
+   surfaces opt back in so their controls/scrolling keep working. */
+body.axxa-inspecting {
+	touch-action: none !important;
+}
+body.axxa-inspecting .axxa-inspector-view,
+body.axxa-inspecting .axxa-floating,
+body.axxa-inspecting .axxa-floating * {
+	touch-action: auto;
+}
+body.axxa-inspecting .axxa-inspector-view {
+	touch-action: pan-y;
+}
+
 body.axxa-high-contrast .axxa-overlay-content {
 	outline-width: 2px;
 }
