@@ -872,3 +872,65 @@ body.axxa-mobile .axxa-chip {
 body.axxa-mobile .axxa-style-key {
 	flex-basis: 38%;
 }
+
+/* ── Floating code editor (snippet sandbox) ───────────────────────────────── */
+.axxa-code-toggle.is-active {
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	border-color: transparent;
+}
+.axxa-floating-code {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.axxa-code-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.axxa-code {
+	display: flex;
+	max-height: 40vh;
+	min-height: 120px;
+	border-radius: var(--axxa-radius-sm);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	overflow: hidden;
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	line-height: 1.5;
+}
+.axxa-code-gutter {
+	flex: 0 0 auto;
+	padding: 8px 6px;
+	text-align: right;
+	color: var(--text-faint);
+	background: var(--background-secondary);
+	border-right: 1px solid var(--background-modifier-border);
+	user-select: none;
+	overflow: hidden;
+	min-width: 28px;
+}
+.axxa-code-gutter > div {
+	height: 1.5em;
+}
+.axxa-code-area {
+	flex: 1;
+	resize: none;
+	border: none;
+	outline: none;
+	padding: 8px;
+	background: transparent;
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	line-height: 1.5;
+	tab-size: 2;
+	white-space: pre;
+	overflow: auto;
+	touch-action: pan-y;
+}
+.axxa-code-area::placeholder {
+	color: var(--text-faint);
+}

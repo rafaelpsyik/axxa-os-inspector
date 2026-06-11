@@ -4,7 +4,9 @@ import type { ServiceContainer } from "../core/ServiceContainer";
 import { Tokens } from "../core/tokens";
 import { buildUniqueSelector } from "../utils/selector";
 import { copyToClipboard } from "../utils/clipboard";
+import { debounce, type Cancellable } from "../utils/schedule";
 import { renderStyleEditor } from "./StyleEditor";
+import { attachCodeEditor } from "./CodeEditor";
 
 /**
  * Floating, always-on-top inspector controls.
@@ -33,7 +35,12 @@ export class FloatingControls implements IDisposable {
 	private stylesToggle!: HTMLButtonElement;
 	private stylesEl!: HTMLElement;
 	private snippetBtn!: HTMLButtonElement;
+	private codeToggle!: HTMLButtonElement;
+	private codeEl!: HTMLElement;
+	private scratchId: string | null = null;
+	private pushCode!: Cancellable<(css: string) => void>;
 	private stylesOpen = false;
+	private codeOpen = false;
 	private visible = false;
 
 	constructor(
@@ -45,11 +52,16 @@ export class FloatingControls implements IDisposable {
 		this.root.setAttr("aria-label", "AXXA inspector controls");
 		this.group.register(() => this.root.remove());
 
+		// Debounced live-apply so typing in the code editor stays smooth.
+		this.pushCode = debounce((css: string) => this.commitCode(css), 250);
+		this.group.register(() => this.pushCode.cancel());
+
 		this.buildHeader();
 		this.buildPrimaryRow();
 		this.buildLabel();
 		this.buildNav();
 		this.buildStyles();
+		this.buildCode();
 
 		// Reflect engine state in the widget.
 		const { bus } = this.container;
@@ -168,7 +180,7 @@ export class FloatingControls implements IDisposable {
 		this.stylesToggle.createSpan({ text: "Styles" });
 		this.stylesToggle.onclick = () => {
 			this.stylesOpen = !this.stylesOpen;
-			this.root.toggleClass("axxa-floating-wide", this.stylesOpen);
+			this.root.toggleClass("axxa-floating-wide", this.stylesOpen || this.codeOpen);
 			this.renderStyles();
 		};
 		this.stylesEl = this.root.createDiv({ cls: "axxa-floating-styles" });
@@ -191,6 +203,93 @@ export class FloatingControls implements IDisposable {
 			// After a change the swatch/edited markers must refresh.
 			onChange: () => this.renderStyles(),
 		});
+	}
+
+	/**
+	 * Expandable CSS snippet code editor (Feature 12) — paste, activate and edit
+	 * live, entirely from the floating widget. Backed by the ExperimentSandbox's
+	 * single scratch snippet so it persists and injects without a reload.
+	 */
+	private buildCode(): void {
+		this.codeToggle = this.root.createEl("button", { cls: "axxa-floating-btn axxa-code-toggle" });
+		setIcon(this.codeToggle.createSpan(), "code");
+		this.codeToggle.createSpan({ text: "Code editor" });
+		this.codeToggle.onclick = () => {
+			this.codeOpen = !this.codeOpen;
+			this.root.toggleClass("axxa-floating-wide", this.codeOpen || this.stylesOpen);
+			this.renderCode();
+		};
+		this.codeEl = this.root.createDiv({ cls: "axxa-floating-code" });
+		this.codeEl.style.display = "none";
+	}
+
+	private renderCode(): void {
+		this.codeToggle.toggleClass("is-active", this.codeOpen);
+		if (!this.codeOpen) {
+			this.codeEl.style.display = "none";
+			this.codeEl.empty();
+			return;
+		}
+		this.codeEl.style.display = "block";
+		this.codeEl.empty();
+
+		const sandbox = this.container.resolve(Tokens.Sandbox);
+		const scratch = sandbox.ensureScratch();
+		this.scratchId = scratch.id;
+
+		// Toolbar: activate toggle + paste + clear.
+		const bar = this.codeEl.createDiv({ cls: "axxa-code-bar" });
+		const activate = bar.createEl("button", {
+			cls: ["axxa-chip", scratch.enabled ? "is-active" : ""],
+		});
+		setIcon(activate.createSpan({ cls: "axxa-chip-icon" }), scratch.enabled ? "zap" : "zap-off");
+		activate.createSpan({ text: scratch.enabled ? "Active" : "Inactive" });
+		activate.onclick = () => {
+			sandbox.update(scratch.id, { enabled: !scratch.enabled });
+			this.persistExperiments();
+			this.renderCode();
+		};
+
+		const paste = bar.createEl("button", { cls: "axxa-chip" });
+		setIcon(paste.createSpan({ cls: "axxa-chip-icon" }), "clipboard-paste");
+		paste.createSpan({ text: "Paste" });
+		paste.onclick = async () => {
+			try {
+				const text = await navigator.clipboard.readText();
+				if (text) {
+					editor.setValue(joinCss(editor.getValue(), text));
+					this.pushCode(editor.getValue());
+				}
+			} catch {
+				this.container.bus.emit("notice", { message: "Clipboard read blocked", level: "warn" });
+			}
+		};
+
+		const clear = bar.createEl("button", { cls: "axxa-chip mod-warning" });
+		setIcon(clear.createSpan({ cls: "axxa-chip-icon" }), "eraser");
+		clear.createSpan({ text: "Clear" });
+		clear.onclick = () => {
+			editor.setValue("");
+			this.commitCode("");
+		};
+
+		// The code editor itself.
+		const editor = attachCodeEditor(this.codeEl, {
+			value: scratch.css,
+			placeholder: "/* paste or write CSS here */\n.status-bar {\n\tdisplay: none;\n}",
+			onInput: (css) => this.pushCode(css),
+		});
+	}
+
+	private commitCode(css: string): void {
+		if (!this.scratchId) return;
+		this.container.resolve(Tokens.Sandbox).update(this.scratchId, { css });
+		this.persistExperiments();
+	}
+
+	private persistExperiments(): void {
+		const persistence = this.container.resolve(Tokens.Persistence);
+		persistence.set("experiments", this.container.resolve(Tokens.Sandbox).list());
 	}
 
 	// ── state sync ──────────────────────────────────────────────────────────────
@@ -293,4 +392,12 @@ function shortSelector(el: HTMLElement): string {
 
 function clamp(v: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, v));
+}
+
+/** Append pasted CSS to the existing buffer, separating with a blank line. */
+function joinCss(existing: string, pasted: string): string {
+	const a = existing.trimEnd();
+	const b = pasted.trim();
+	if (!a) return b;
+	return `${a}\n\n${b}`;
 }

@@ -4,6 +4,9 @@ import type { AxxaEventMap } from "../types/events";
 import { uid } from "../utils/id";
 import type { CssExperiment, ExperimentPreset } from "../types/experiment";
 
+/** Reserved group marking the floating code editor's single scratch snippet. */
+export const SCRATCH_GROUP = "floating-scratch";
+
 /**
  * CSS Experiment Sandbox (Feature 12).
  *
@@ -50,6 +53,20 @@ export class ExperimentSandbox implements IDisposable {
 		this.experiments.push(exp);
 		this.render();
 		this.changed();
+		return exp;
+	}
+
+	/**
+	 * Get (or lazily create) the single "scratch" experiment backing the
+	 * floating code editor. Identified by a reserved group so it survives
+	 * reloads and is re-linked after hydration.
+	 */
+	ensureScratch(): CssExperiment {
+		const existing = this.experiments.find((e) => e.group === SCRATCH_GROUP);
+		if (existing) return existing;
+		const exp = this.add("Floating snippet", "", SCRATCH_GROUP);
+		exp.enabled = false; // start disabled until the user activates it
+		this.render();
 		return exp;
 	}
 
