@@ -105,4 +105,28 @@ export class ObsidianTopology {
 		}
 		return null;
 	}
+
+	/**
+	 * Walk the DOM and return every recognised Obsidian region. Powers the
+	 * secret X-Ray reveal — a one-shot architectural map of the whole UI.
+	 * Class-based matching only, so it's cheap even across the full body; capped
+	 * to keep the reveal responsive.
+	 */
+	scanRegions(
+		root: HTMLElement = document.body,
+		limit = 400,
+	): { element: HTMLElement; label: string; category: ObsidianRegionCategory }[] {
+		const out: { element: HTMLElement; label: string; category: ObsidianRegionCategory }[] = [];
+		for (const el of Array.from(root.querySelectorAll<HTMLElement>("*"))) {
+			if (el.closest(".axxa-overlay-root, .axxa-floating, .axxa-debuglog, .axxa-xray-root, .axxa-inspector-view")) {
+				continue;
+			}
+			const hit = this.identify(el);
+			if (hit) {
+				out.push({ element: el, label: hit.label, category: hit.category });
+				if (out.length >= limit) break;
+			}
+		}
+		return out;
+	}
 }

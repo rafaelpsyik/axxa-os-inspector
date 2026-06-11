@@ -873,6 +873,85 @@ body.axxa-mobile .axxa-style-key {
 	flex-basis: 38%;
 }
 
+/* ── ✶ AXXA X-Ray (secret reveal) ─────────────────────────────────────────── */
+.axxa-xray-root {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 9998;
+	pointer-events: none;
+	overflow: hidden;
+}
+.axxa-xray-box {
+	position: fixed;
+	top: 0;
+	left: 0;
+	outline: 1.5px solid;
+	outline-offset: -1px;
+	border-radius: 2px;
+	pointer-events: none;
+	transition: opacity 0.2s ease;
+}
+.axxa-xray-tag {
+	position: fixed;
+	top: 0;
+	left: 0;
+	transform-origin: top left;
+	padding: 1px 5px;
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: #fff;
+	border-radius: 0 0 4px 0;
+	white-space: nowrap;
+	pointer-events: auto;
+	cursor: pointer;
+	max-width: 50vw;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-xray-legend {
+	left: 50%;
+	right: auto;
+	top: 12px;
+	bottom: auto;
+	transform: translateX(-50%);
+	width: 220px;
+}
+.axxa-xray-legend-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	max-height: 40vh;
+	overflow-y: auto;
+}
+.axxa-xray-legend-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+	text-transform: capitalize;
+}
+.axxa-xray-legend-row .axxa-badge {
+	margin-left: auto;
+}
+.axxa-xray-legend-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex: 0 0 auto;
+}
+.axxa-xray-sigil {
+	margin-top: 8px;
+	padding-top: 6px;
+	border-top: 1px solid var(--background-modifier-border);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-align: center;
+	color: var(--text-faint);
+}
+
 /* ── Live DOM tree viewer ─────────────────────────────────────────────────── */
 .axxa-domtree-modes {
 	display: flex;

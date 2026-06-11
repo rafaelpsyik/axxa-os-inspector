@@ -16,6 +16,7 @@ import { LayoutDebugger } from "./engines/LayoutDebugger";
 import { InspectorView, AXXA_VIEW_TYPE } from "./ui/InspectorView";
 import { FloatingControls } from "./ui/FloatingControls";
 import { DebugLog } from "./ui/DebugLog";
+import { XRayMode } from "./ui/XRayMode";
 import { AxxaSettingsTab } from "./settings/SettingsTab";
 import { isMobile } from "./utils/platform";
 import { copyToClipboard } from "./utils/clipboard";
@@ -34,6 +35,9 @@ export default class AxxaInspectorPlugin extends Plugin {
 	private container!: ServiceContainer;
 	private floating!: FloatingControls;
 	private debugLog!: DebugLog;
+	private xray!: XRayMode;
+	/** Rolling buffer for the secret activation sequence. */
+	private konami: string[] = [];
 	persistence!: PersistenceLayer;
 
 	async onload(): Promise<void> {
@@ -97,7 +101,27 @@ export default class AxxaInspectorPlugin extends Plugin {
 		this.app.workspace.detachLeavesOfType(AXXA_VIEW_TYPE);
 		this.floating?.dispose();
 		this.debugLog?.dispose();
+		this.xray?.dispose();
 		this.container?.dispose();
+	}
+
+	/**
+	 * The secret incantation: the Konami code (↑↑↓↓←→←→ B A) reveals the AXXA
+	 * X-Ray. A hidden command does the same for those who don't know the code.
+	 */
+	private registerKonami(): void {
+		const SEQUENCE = [
+			"arrowup", "arrowup", "arrowdown", "arrowdown",
+			"arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a",
+		];
+		this.registerDomEvent(document, "keydown", (e: KeyboardEvent) => {
+			this.konami.push(e.key.toLowerCase());
+			if (this.konami.length > SEQUENCE.length) this.konami.shift();
+			if (this.konami.length === SEQUENCE.length && SEQUENCE.every((k, i) => this.konami[i] === k)) {
+				this.konami = [];
+				this.xray.toggle();
+			}
+		});
 	}
 
 	/** Re-apply mutable settings to live engines (called by the settings tab). */
@@ -120,6 +144,9 @@ export default class AxxaInspectorPlugin extends Plugin {
 		this.floating = new FloatingControls(this.container, () => void this.activateView());
 		// On-screen debug console for mobile (no DevTools).
 		this.debugLog = new DebugLog(this.container);
+		// ✶ The secret one: AXXA X-Ray.
+		this.xray = new XRayMode(this.container);
+		this.registerKonami();
 
 		// Ribbon icons.
 		this.addRibbonIcon("scan-search", "Open AXXA Inspector", () => void this.activateView());
@@ -155,6 +182,11 @@ export default class AxxaInspectorPlugin extends Plugin {
 			id: "toggle-debug-log",
 			name: "Toggle on-screen debug log",
 			callback: () => this.debugLog.toggle(),
+		});
+		this.addCommand({
+			id: "reveal-architecture",
+			name: "✶ Reveal the Architecture (X-Ray)",
+			callback: () => this.xray.toggle(),
 		});
 		this.addCommand({
 			id: "copy-changes-snippet",
