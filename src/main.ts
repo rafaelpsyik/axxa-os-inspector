@@ -144,8 +144,10 @@ export default class AxxaInspectorPlugin extends Plugin {
 		this.floating = new FloatingControls(this.container, () => void this.activateView());
 		// On-screen debug console for mobile (no DevTools).
 		this.debugLog = new DebugLog(this.container);
-		// ✶ The secret one: AXXA X-Ray.
+		// ✶ The secret one: AXXA X-Ray. Reveal via the Konami code (desktop) or
+		// the mobile tap-gesture, which arrives as this bus event.
 		this.xray = new XRayMode(this.container);
+		this.container.bus.on("reveal-architecture", () => this.xray.toggle());
 		this.registerKonami();
 
 		// Ribbon icons.

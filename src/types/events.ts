@@ -31,6 +31,8 @@ export type AxxaEventMap = {
 	"visual-test-changed": { action: VisualTestAction; active: boolean };
 	/** Isolation mode entered/exited. */
 	"isolation-changed": { active: boolean };
+	/** Secret gesture asked to toggle the X-Ray reveal (mobile-friendly). */
+	"reveal-architecture": Record<string, never>;
 	/** Experiments list changed (added/removed/toggled). */
 	"experiments-changed": Record<string, never>;
 	/** A non-fatal notice the UI may surface. */

@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { setIcon, Notice } from "obsidian";
 import { DisposableGroup, type IDisposable } from "../core/Disposable";
 import type { ServiceContainer } from "../core/ServiceContainer";
 import { Tokens } from "../core/tokens";
@@ -96,13 +96,37 @@ export class FloatingControls implements IDisposable {
 	/** Draggable handle so the widget can be moved off whatever it's covering. */
 	private buildHeader(): void {
 		const handle = this.root.createDiv({ cls: "axxa-floating-handle" });
-		handle.createSpan({ text: "AXXA Inspector" });
+		const title = handle.createSpan({ text: "AXXA Inspector" });
 		const close = handle.createEl("button", { cls: "axxa-floating-x" });
 		setIcon(close, "x");
 		close.setAttr("aria-label", "Hide controls");
 		close.onclick = () => this.hide();
 
+		// ✶ Secret, mobile-friendly: tap the title 7× quickly to reveal X-Ray
+		// (no keyboard needed — works on touch).
+		this.wireSecretTaps(title);
+
 		this.makeDraggable(handle);
+	}
+
+	/** Count rapid taps on the title; 7 within the window reveals X-Ray. */
+	private wireSecretTaps(title: HTMLElement): void {
+		const NEEDED = 7;
+		const WINDOW = 700; // ms between taps before the streak resets
+		let count = 0;
+		let last = 0;
+		title.onclick = () => {
+			const now = Date.now();
+			count = now - last < WINDOW ? count + 1 : 1;
+			last = now;
+			const remaining = NEEDED - count;
+			if (count >= NEEDED) {
+				count = 0;
+				this.container.bus.emit("reveal-architecture", {});
+			} else if (remaining <= 3) {
+				new Notice(`✶ ${remaining} more…`, 900);
+			}
+		};
 	}
 
 	private buildPrimaryRow(): void {
