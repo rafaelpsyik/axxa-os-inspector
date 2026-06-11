@@ -873,6 +873,69 @@ body.axxa-mobile .axxa-style-key {
 	flex-basis: 38%;
 }
 
+/* ── Live DOM tree viewer ─────────────────────────────────────────────────── */
+.axxa-domtree-modes {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 8px;
+}
+.axxa-domtree-scroll {
+	max-height: 52vh;
+	overflow: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--axxa-radius-sm);
+	background: var(--background-primary);
+	touch-action: pan-y;
+}
+.axxa-domtree-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 30px;
+	padding-right: 8px;
+	cursor: pointer;
+	border-radius: 4px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	white-space: nowrap;
+}
+.axxa-domtree-row:hover {
+	background: var(--background-modifier-hover);
+}
+.axxa-domtree-row.is-selected {
+	background: color-mix(in srgb, var(--axxa-accent) 22%, transparent);
+	outline: 1px solid var(--axxa-accent);
+}
+.axxa-domtree-twisty {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+.axxa-domtree-twisty.is-leaf {
+	opacity: 0;
+}
+.axxa-domtree-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-domtree-dot {
+	width: 8px;
+	height: 8px;
+	margin-left: auto;
+	border-radius: 50%;
+	background: var(--color-red, #e5484d);
+	flex: 0 0 auto;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-red, #e5484d) 25%, transparent);
+}
+.axxa-domtree-more {
+	padding: 4px 8px 4px 24px;
+	font-size: 10px;
+}
+
 /* ── Floating code editor (snippet sandbox) ───────────────────────────────── */
 .axxa-code-toggle.is-active {
 	background: var(--axxa-accent);

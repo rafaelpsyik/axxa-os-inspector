@@ -10,6 +10,7 @@ import type { VisualTestAction } from "../types/experiment";
 import type { ExportFormat } from "../types/export";
 import { renderStyleEditor } from "./StyleEditor";
 import { renderCappedList } from "./list";
+import { DomTreeView } from "./DomTreeView";
 import { saveSnippet } from "../utils/snippet";
 
 export const AXXA_VIEW_TYPE = "axxa-inspector-view";
@@ -52,6 +53,9 @@ export class InspectorView extends ItemView {
 	private bodyEl!: HTMLElement;
 	private changesBadge: HTMLElement | null = null;
 	private selected: HTMLElement | null = null;
+	/** Live DOM tree viewer — owns a MutationObserver, so it must be disposed
+	 * whenever the body is re-rendered or the view closes. */
+	private domTree: DomTreeView | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -108,6 +112,8 @@ export class InspectorView extends ItemView {
 	}
 
 	protected async onClose(): Promise<void> {
+		this.domTree?.dispose();
+		this.domTree = null;
 		this.group.dispose();
 	}
 
@@ -194,6 +200,9 @@ export class InspectorView extends ItemView {
 	// ── Body dispatcher ────────────────────────────────────────────────────────────
 
 	private renderBody(): void {
+		// Tear down the live tree (and its observer) before discarding the DOM.
+		this.domTree?.dispose();
+		this.domTree = null;
 		this.bodyEl.empty();
 		switch (this.activeTab) {
 			case "inspect":
@@ -429,6 +438,12 @@ export class InspectorView extends ItemView {
 		};
 		input.oninput = run;
 		run();
+
+		// Live DOM tree viewer — updates as the document is built, tap to select,
+		// red dot on edited elements.
+		const treeCard = this.bodyEl.createDiv({ cls: "axxa-card" });
+		treeCard.createEl("h4", { text: "Live DOM tree" });
+		this.domTree = new DomTreeView(treeCard, this.container);
 
 		if (this.selected) {
 			const tree = dom.buildTree(this.selected, 4, 300);

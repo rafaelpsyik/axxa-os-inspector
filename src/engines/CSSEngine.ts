@@ -254,6 +254,11 @@ export class CSSEngine implements IDisposable {
 		return Array.from(this.edits.get(el)?.values() ?? []);
 	}
 
+	/** Whether an element currently carries any live edit (drives the tree dot). */
+	hasEdits(el: HTMLElement): boolean {
+		return (this.edits.get(el)?.size ?? 0) > 0;
+	}
+
 	/** Every element with live edits, newest first, pruning detached nodes. */
 	getEditedElements(): { element: HTMLElement; selector: string; edits: CssEdit[] }[] {
 		this.pruneDetached();
