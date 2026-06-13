@@ -1197,3 +1197,153 @@ body.axxa-frozen::after {
 @media (prefers-reduced-motion: reduce) {
 	body.axxa-frozen::after { animation: none; }
 }
+
+/* ============================================================================
+   FAB v3 — compact icon toolbar, minimise bubble, status bar.
+   ========================================================================== */
+
+/* Tighter widget overall. */
+.axxa-floating {
+	width: 178px;
+	gap: 5px;
+	padding: 6px;
+}
+.axxa-floating.axxa-floating-wide {
+	width: 264px;
+}
+.axxa-floating .axxa-floating-handle {
+	margin: -6px -6px 0;
+	padding: 5px 8px;
+}
+.axxa-floating-title {
+	cursor: grab;
+}
+.axxa-floating-actions {
+	display: flex;
+	gap: 2px;
+}
+
+/* Icon toolbar: one tight row, wraps if needed. */
+.axxa-tools {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 3px;
+}
+.axxa-tool {
+	flex: 1 1 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	height: 34px;
+	min-width: 34px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.axxa-tool:hover {
+	background: var(--interactive-hover);
+	color: var(--text-normal);
+}
+.axxa-tool.is-active {
+	background: color-mix(in srgb, var(--axxa-accent) 20%, var(--background-secondary));
+	border-color: color-mix(in srgb, var(--axxa-accent) 55%, transparent);
+	color: var(--text-normal);
+}
+.axxa-tool.axxa-freeze.is-active {
+	background: var(--color-red, #e5484d);
+	color: #fff;
+	border-color: transparent;
+	box-shadow: 0 0 12px color-mix(in srgb, var(--color-red, #e5484d) 55%, transparent);
+}
+.axxa-tool .axxa-badge {
+	position: absolute;
+	top: -4px;
+	right: -4px;
+}
+
+/* Compact readout with inline nav. */
+.axxa-floating-readout {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 7px;
+}
+.axxa-readout-text {
+	flex: 1;
+	min-width: 0;
+}
+.axxa-floating-label {
+	font-size: 10px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-floating-meta {
+	font-size: 9px;
+}
+.axxa-floating-readout .axxa-floating-nav-row {
+	gap: 2px;
+	flex: 0 0 auto;
+}
+.axxa-floating-nav-btn {
+	width: 30px;
+	height: 30px;
+}
+
+/* Minimised: collapse to a single round bubble. */
+.axxa-fab-launcher {
+	display: none;
+	width: 48px;
+	height: 48px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: none;
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	cursor: pointer;
+	box-shadow: var(--axxa-shadow);
+}
+.axxa-floating.is-min {
+	width: auto !important;
+	padding: 0;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	overflow: visible;
+}
+.axxa-floating.is-min > *:not(.axxa-fab-launcher) {
+	display: none !important;
+}
+.axxa-floating.is-min .axxa-fab-launcher {
+	display: flex;
+}
+
+/* Status bar item. */
+.axxa-statusbar {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+.axxa-statusbar.is-active .axxa-statusbar-icon {
+	color: var(--color-red, #e5484d);
+}
+.axxa-statusbar-count {
+	font-size: 10px;
+	font-weight: 700;
+	min-width: 14px;
+	height: 14px;
+	padding: 0 3px;
+	border-radius: 7px;
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.axxa-statusbar-count.is-hidden {
+	display: none;
+}

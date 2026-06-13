@@ -110,6 +110,13 @@ export class ExperimentSandbox implements IDisposable {
 		this.changed();
 	}
 
+	/** Append CSS to the scratch snippet, enabling it, and inject live. */
+	appendToScratch(css: string): void {
+		const scratch = this.ensureScratch();
+		const next = scratch.css.trim() ? `${scratch.css.trimEnd()}\n\n${css}` : css;
+		this.update(scratch.id, { css: next, enabled: true });
+	}
+
 	/** Re-write the injected style node from the enabled experiments. */
 	private render(): void {
 		const css = this.experiments

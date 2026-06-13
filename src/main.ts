@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin, WorkspaceLeaf, setIcon } from "obsidian";
 import { ServiceContainer } from "./core/ServiceContainer";
 import { Tokens } from "./core/tokens";
 import { ObsidianTopology } from "./intelligence/ObsidianTopology";
@@ -106,6 +106,34 @@ export default class AxxaInspectorPlugin extends Plugin {
 	}
 
 	/**
+	 * Status-bar integration — an always-visible entry point + live state.
+	 * Shows the inspect/freeze state and a live count of edited elements; clicking
+	 * it reveals the floating controls (and arms inspect mode).
+	 */
+	private registerStatusBar(): void {
+		const item = this.addStatusBarItem();
+		item.addClass("axxa-statusbar", "mod-clickable");
+		const icon = item.createSpan({ cls: "axxa-statusbar-icon" });
+		setIcon(icon, "scan-search");
+		const count = item.createSpan({ cls: "axxa-statusbar-count" });
+
+		const render = () => {
+			const inspector = this.container.resolve(Tokens.Inspector);
+			const changes = this.container.resolve(Tokens.Css).changeCount;
+			item.toggleClass("is-active", inspector.isActive);
+			count.setText(changes > 0 ? String(changes) : "");
+			count.toggleClass("is-hidden", changes === 0);
+		};
+		item.onclick = () => {
+			this.floating.show();
+			this.container.resolve(Tokens.Inspector).setActive(true);
+		};
+		this.container.bus.on("inspect-mode-changed", render);
+		this.container.bus.on("changes-updated", render);
+		render();
+	}
+
+	/**
 	 * The secret incantation: the Konami code (↑↑↓↓←→←→ B A) reveals the AXXA
 	 * X-Ray. A hidden command does the same for those who don't know the code.
 	 */
@@ -158,6 +186,7 @@ export default class AxxaInspectorPlugin extends Plugin {
 			this.container.resolve(Tokens.Inspector).setActive(true);
 		});
 
+		this.registerStatusBar();
 		this.addSettingTab(new AxxaSettingsTab(this.app, this));
 
 		// Commands (Feature 15: keyboard shortcuts).

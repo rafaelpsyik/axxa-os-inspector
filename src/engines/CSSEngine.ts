@@ -259,6 +259,20 @@ export class CSSEngine implements IDisposable {
 		return (this.edits.get(el)?.size ?? 0) > 0;
 	}
 
+	/**
+	 * Build a reusable CSS rule from an element's current edits — the bridge
+	 * from a one-off inline tweak to a real, shareable selector rule. Prefers a
+	 * class-based selector (good for theming) over the brittle unique one.
+	 */
+	buildElementRule(el: HTMLElement): string {
+		const edits = this.getEdits(el);
+		if (edits.length === 0) return "";
+		const classes = Array.from(el.classList).filter((c) => !c.startsWith("axxa-"));
+		const selector = classes.length ? `.${classes.join(".")}` : safeSelector(el);
+		const decls = edits.map((e) => `\t${e.property}: ${e.newValue};`).join("\n");
+		return `${selector} {\n${decls}\n}`;
+	}
+
 	/** Every element with live edits, newest first, pruning detached nodes. */
 	getEditedElements(): { element: HTMLElement; selector: string; edits: CssEdit[] }[] {
 		this.pruneDetached();

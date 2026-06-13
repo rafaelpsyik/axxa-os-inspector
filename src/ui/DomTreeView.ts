@@ -28,6 +28,7 @@ export class DomTreeView implements IDisposable {
 	private readonly group = new DisposableGroup();
 	private treeEl!: HTMLElement;
 	private rootMode: RootMode = "active-view";
+	private query = "";
 	/** Expansion state survives re-renders (keyed by the live element). */
 	private readonly expanded = new WeakSet<HTMLElement>();
 	/** Row element per rendered node, for cheap selection/edit updates. */
@@ -70,6 +71,14 @@ export class DomTreeView implements IDisposable {
 		chip(this.compact ? "App" : "Whole app", "body");
 		chip(this.compact ? "Sel" : "Selection", "selection");
 
+		// Filter: tag / .class / #id / text — jump straight to matches.
+		const search = wrap.createEl("input", { cls: "axxa-search axxa-domtree-search" });
+		search.placeholder = "filter: tag · .class · #id · text";
+		search.oninput = () => {
+			this.query = search.value.trim();
+			this.refresh();
+		};
+
 		this.treeEl = wrap.createDiv({ cls: "axxa-domtree-scroll" });
 		this.refresh();
 	}
@@ -100,9 +109,42 @@ export class DomTreeView implements IDisposable {
 			this.treeEl.createDiv({ cls: "axxa-muted axxa-empty-row", text: "No root element." });
 			return;
 		}
+		if (this.query) {
+			this.renderFiltered(root);
+			return;
+		}
 		// Root is expanded by default the first time it's seen.
 		if (!this.expanded.has(root)) this.expanded.add(root);
 		this.renderNode(root, this.treeEl, 0);
+		this.markSelection();
+	}
+
+	/** Flat list of nodes under root matching the query (tag/.class/#id/text). */
+	private renderFiltered(root: HTMLElement): void {
+		const dom = this.container.resolve(Tokens.Dom);
+		const css = this.container.resolve(Tokens.Css);
+		const q = this.query;
+		const query =
+			q.startsWith(".")
+				? { className: q.slice(1) }
+				: q.startsWith("#")
+					? { id: q.slice(1) }
+					: /^[a-z][\w-]*$/i.test(q)
+						? { tag: q }
+						: { text: q };
+		const hits = dom.search(query, root, 120).filter((el) => !isOwnUi(el));
+		if (hits.length === 0) {
+			this.treeEl.createDiv({ cls: "axxa-muted axxa-empty-row", text: "No matches." });
+			return;
+		}
+		for (const el of hits) {
+			const row = this.treeEl.createDiv({ cls: "axxa-domtree-row" });
+			row.style.paddingLeft = "8px";
+			row.createSpan({ cls: "axxa-domtree-label", text: dom.describe(el).semanticLabel ?? shortLabel(el) });
+			if (css.hasEdits(el)) row.createSpan({ cls: "axxa-domtree-dot" });
+			this.rows.set(el, row);
+			row.onclick = () => this.container.resolve(Tokens.Inspector).select(el);
+		}
 		this.markSelection();
 	}
 

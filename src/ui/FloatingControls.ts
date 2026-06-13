@@ -69,6 +69,7 @@ export class FloatingControls implements IDisposable {
 		this.buildNav();
 		this.buildSections();
 		this.buildResizeGrip();
+		this.buildLauncher();
 		this.applyPersistedSize();
 
 		// Reflect engine state in the widget.
@@ -104,17 +105,38 @@ export class FloatingControls implements IDisposable {
 	/** Draggable handle so the widget can be moved off whatever it's covering. */
 	private buildHeader(): void {
 		const handle = this.root.createDiv({ cls: "axxa-floating-handle" });
-		const title = handle.createSpan({ text: "AXXA Inspector" });
-		const close = handle.createEl("button", { cls: "axxa-floating-x" });
+		const title = handle.createSpan({ cls: "axxa-floating-title", text: "AXXA" });
+		const actions = handle.createDiv({ cls: "axxa-floating-actions" });
+
+		const min = actions.createEl("button", { cls: "axxa-floating-x" });
+		setIcon(min, "minus");
+		min.setAttr("aria-label", "Minimise");
+		min.onclick = () => this.minimize();
+
+		const close = actions.createEl("button", { cls: "axxa-floating-x" });
 		setIcon(close, "x");
 		close.setAttr("aria-label", "Hide controls");
 		close.onclick = () => this.hide();
 
-		// ✶ Secret, mobile-friendly: tap the title 7× quickly to reveal X-Ray
-		// (no keyboard needed — works on touch).
+		// ✶ Secret, mobile-friendly: tap the title 7× quickly to reveal X-Ray.
 		this.wireSecretTaps(title);
-
 		this.makeDraggable(handle);
+	}
+
+	/** A tiny launcher bubble shown only while minimised. */
+	private buildLauncher(): void {
+		const bubble = this.root.createEl("button", { cls: "axxa-fab-launcher" });
+		setIcon(bubble, "scan-search");
+		bubble.setAttr("aria-label", "Expand AXXA Inspector");
+		bubble.onclick = () => this.expand();
+		this.makeDraggable(bubble);
+	}
+
+	private minimize(): void {
+		this.root.addClass("is-min");
+	}
+	private expand(): void {
+		this.root.removeClass("is-min");
 	}
 
 	/** Count rapid taps on the title; 7 within the window reveals X-Ray. */
@@ -137,32 +159,48 @@ export class FloatingControls implements IDisposable {
 		};
 	}
 
+	/** Single compact icon toolbar: Freeze · Styles · Tree · Code · Snippet · Panel. */
 	private buildPrimaryRow(): void {
-		const row = this.root.createDiv({ cls: "axxa-floating-row" });
+		const bar = this.root.createDiv({ cls: "axxa-tools" });
 
-		this.freezeBtn = row.createEl("button", { cls: "axxa-floating-btn axxa-freeze" });
-		this.freezeBtn.onclick = () => {
+		this.freezeBtn = this.toolBtn(bar, "lock-open", "Freeze", () => {
 			const inspector = this.container.resolve(Tokens.Inspector);
 			inspector.setActive(!inspector.isActive);
-		};
+		});
+		this.freezeBtn.addClass("axxa-freeze");
 
-		const panelBtn = row.createEl("button", { cls: "axxa-floating-btn" });
-		setIcon(panelBtn.createSpan(), "panel-right");
-		panelBtn.createSpan({ text: "Panel" });
-		panelBtn.setAttr("aria-label", "Open full inspector panel");
-		panelBtn.onclick = () => this.openPanel();
+		this.stylesToggle = this.toolBtn(bar, "sliders-horizontal", "Styles", () => {
+			this.stylesOpen = !this.stylesOpen;
+			this.renderStyles();
+		});
+		this.treeToggle = this.toolBtn(bar, "list-tree", "DOM tree", () => {
+			this.treeOpen = !this.treeOpen;
+			this.renderTree();
+		});
+		this.codeToggle = this.toolBtn(bar, "code", "Code editor", () => {
+			this.codeOpen = !this.codeOpen;
+			this.renderCode();
+		});
 
-		// Snippet export of everything currently edited, with a live count badge.
-		const snippetRow = this.root.createDiv({ cls: "axxa-floating-row" });
-		this.snippetBtn = snippetRow.createEl("button", { cls: "axxa-floating-btn" });
-		setIcon(this.snippetBtn.createSpan(), "clipboard-copy");
-		this.snippetBtn.createSpan({ text: "Copy snippet" });
+		this.snippetBtn = this.toolBtn(bar, "clipboard-copy", "Copy snippet of all edits", () =>
+			void copyToClipboard(this.container.resolve(Tokens.Css).exportCurrentSnippet(), "CSS snippet"),
+		);
 		this.snippetBtn.createSpan({ cls: "axxa-badge is-hidden" });
-		this.snippetBtn.onclick = () =>
-			void copyToClipboard(this.container.resolve(Tokens.Css).exportCurrentSnippet(), "CSS snippet");
+
+		this.toolBtn(bar, "panel-right", "Open full panel", () => this.openPanel());
+
 		this.group.register(
 			this.container.bus.on("changes-updated", ({ count }) => this.syncChanges(count)),
 		);
+	}
+
+	private toolBtn(parent: HTMLElement, icon: string, label: string, onClick: () => void): HTMLButtonElement {
+		const btn = parent.createEl("button", { cls: "axxa-tool" });
+		setIcon(btn, icon);
+		btn.setAttr("aria-label", label);
+		btn.setAttr("title", label);
+		btn.onclick = onClick;
+		return btn;
 	}
 
 	private syncChanges(count: number): void {
@@ -172,24 +210,23 @@ export class FloatingControls implements IDisposable {
 		badge.toggleClass("is-hidden", count === 0);
 	}
 
-	/** Textual feedback — guarantees a readout even if the overlay is subtle. */
+	/** Compact one-line readout + inline nav arrows. */
 	private buildLabel(): void {
 		const box = this.root.createDiv({ cls: "axxa-floating-readout" });
-		this.labelEl = box.createDiv({ cls: "axxa-floating-label", text: "No element selected" });
-		this.metaEl = box.createDiv({ cls: "axxa-floating-meta", text: "Freeze the screen and tap an element" });
+		const text = box.createDiv({ cls: "axxa-readout-text" });
+		this.labelEl = text.createDiv({ cls: "axxa-floating-label", text: "No element" });
+		this.metaEl = text.createDiv({ cls: "axxa-floating-meta", text: "freeze + tap" });
+
+		const nav = box.createDiv({ cls: "axxa-floating-nav-row" });
+		this.navButtons.parent = this.navBtn(nav, "chevron-up", "parent", "Parent");
+		this.navButtons.previous = this.navBtn(nav, "chevron-left", "previous", "Previous sibling");
+		this.navButtons.next = this.navBtn(nav, "chevron-right", "next", "Next sibling");
+		this.navButtons.child = this.navBtn(nav, "chevron-down", "child", "First child");
 	}
 
-	/** Parent ↑ · child ↓ · previous ← · next → navigation pad. */
+	/** Kept for layout symmetry; nav now lives in the readout row. */
 	private buildNav(): void {
-		const pad = this.root.createDiv({ cls: "axxa-floating-nav" });
-
-		this.navButtons.parent = this.navBtn(pad, "chevron-up", "parent", "Select parent");
-		const mid = pad.createDiv({ cls: "axxa-floating-nav-row" });
-		this.navButtons.previous = this.navBtn(mid, "chevron-left", "previous", "Previous sibling");
-		const dot = mid.createDiv({ cls: "axxa-floating-dot" });
-		setIcon(dot, "scan-search");
-		this.navButtons.next = this.navBtn(mid, "chevron-right", "next", "Next sibling");
-		this.navButtons.child = this.navBtn(pad, "chevron-down", "child", "Select first child");
+		/* no-op — navigation arrows are built in buildLabel */
 	}
 
 	private navBtn(
@@ -205,36 +242,14 @@ export class FloatingControls implements IDisposable {
 		return btn;
 	}
 
-	/** Build the three collapsible sections: Styles · DOM tree · Code editor. */
+	/** Section bodies (their toggles live in the toolbar). */
 	private buildSections(): void {
-		this.stylesToggle = this.sectionToggle("Styles", "sliders-horizontal", () => {
-			this.stylesOpen = !this.stylesOpen;
-			this.renderStyles();
-		});
 		this.stylesEl = this.root.createDiv({ cls: "axxa-floating-styles axxa-floating-section" });
 		this.stylesEl.style.display = "none";
-
-		this.treeToggle = this.sectionToggle("DOM tree", "list-tree", () => {
-			this.treeOpen = !this.treeOpen;
-			this.renderTree();
-		});
 		this.treeEl = this.root.createDiv({ cls: "axxa-floating-tree axxa-floating-section" });
 		this.treeEl.style.display = "none";
-
-		this.codeToggle = this.sectionToggle("Code editor", "code", () => {
-			this.codeOpen = !this.codeOpen;
-			this.renderCode();
-		});
 		this.codeEl = this.root.createDiv({ cls: "axxa-floating-code axxa-floating-section" });
 		this.codeEl.style.display = "none";
-	}
-
-	private sectionToggle(label: string, icon: string, onClick: () => void): HTMLButtonElement {
-		const btn = this.root.createEl("button", { cls: "axxa-floating-btn axxa-section-toggle" });
-		setIcon(btn.createSpan(), icon);
-		btn.createSpan({ text: label });
-		btn.onclick = onClick;
-		return btn;
 	}
 
 	/** The widget widens whenever any rich section is open. */
@@ -260,6 +275,24 @@ export class FloatingControls implements IDisposable {
 		const chooser = bar.createEl("button", { cls: "axxa-chip" });
 		setIcon(chooser.createSpan({ cls: "axxa-chip-icon" }), "list-checks");
 		chooser.createSpan({ text: "Fields" });
+
+		// Promote this element's edits into a reusable rule in the live snippet.
+		const promote = bar.createEl("button", { cls: "axxa-chip" });
+		setIcon(promote.createSpan({ cls: "axxa-chip-icon" }), "scissors");
+		promote.createSpan({ text: "→ Rule" });
+		promote.setAttr("title", "Turn this element's edits into a reusable snippet rule");
+		promote.onclick = () => {
+			const el = this.container.resolve(Tokens.Inspector).selected;
+			if (!el) return;
+			const rule = this.container.resolve(Tokens.Css).buildElementRule(el);
+			if (!rule) {
+				new Notice("No edits on this element yet.", 2000);
+				return;
+			}
+			this.container.resolve(Tokens.Sandbox).appendToScratch(rule);
+			this.persistExperiments();
+			new Notice("✓ Added to the live snippet", 2500);
+		};
 		const fieldsEl = this.stylesEl.createDiv({ cls: "axxa-fab-fields" });
 		fieldsEl.style.display = "none";
 		chooser.onclick = () => {
