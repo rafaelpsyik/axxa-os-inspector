@@ -1,0 +1,22 @@
+# build / dependency artifacts
+node_modules/
+main.js
+*.js.map
+
+# ...but DO ship the prebuilt, ready-to-install bundle under output/
+!output/
+!output/**
+
+# build tooling output
+dist/
+coverage/
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# obsidian local test vault symlinks
+test-vault/
+data.json

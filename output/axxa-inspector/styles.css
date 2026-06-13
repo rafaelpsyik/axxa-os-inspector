@@ -1,0 +1,1349 @@
+/* ============================================================================
+   AXXA Inspector — styles
+   All selectors are namespaced under `.axxa-*` or applied to <body> via a
+   plugin-scoped class so nothing here leaks into Obsidian's own UI. Colours
+   defer to Obsidian theme variables wherever possible for theme-awareness.
+   ========================================================================== */
+
+:root {
+	--axxa-ui-scale: 1;
+	/* Design tokens — one source of truth for the whole surface. */
+	--axxa-radius: 10px;
+	--axxa-radius-sm: 7px;
+	--axxa-gap: 8px;
+	--axxa-pad: 12px;
+	--axxa-touch: 38px;
+	--axxa-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+	--axxa-accent: var(--interactive-accent);
+}
+
+/* ── Overlay (Feature 1) ───────────────────────────────────────────────────── */
+
+.axxa-overlay-root {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	/* Draw above Obsidian chrome (status bar / mobile swipe bar inherit a high
+	   z-index from the inner workspace) so the highlight is never clipped. */
+	z-index: 9999;
+	pointer-events: none;
+}
+
+.axxa-overlay-root > div {
+	position: fixed;
+	top: 0;
+	left: 0;
+	pointer-events: none;
+	box-sizing: border-box;
+}
+/* Box-model layers stacked margin → padding → content → tooltip. */
+.axxa-overlay-margin { z-index: 1; }
+.axxa-overlay-padding { z-index: 2; }
+.axxa-overlay-content { z-index: 3; }
+.axxa-overlay-tooltip { z-index: 4; }
+
+.axxa-overlay-content {
+	outline: 1px solid var(--interactive-accent);
+	background: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
+}
+
+.axxa-overlay-padding {
+	border-style: solid;
+	border-color: color-mix(in srgb, #7bc86c 45%, transparent);
+}
+
+.axxa-overlay-margin {
+	border-style: solid;
+	border-color: color-mix(in srgb, #f2a23c 40%, transparent);
+}
+
+.axxa-overlay-tooltip {
+	position: fixed;
+	padding: 2px 6px;
+	font-size: 11px;
+	font-family: var(--font-monospace);
+	background: var(--background-modifier-message, #222);
+	color: #fff;
+	border-radius: 4px;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+body.axxa-inspecting,
+body.axxa-inspecting * {
+	cursor: crosshair !important;
+}
+
+/* While inspecting/frozen, block the browser's own touch gestures (scroll,
+   pinch-zoom, swipe) so the screen is truly frozen on touch devices. AXXA's own
+   surfaces opt back in so their controls/scrolling keep working. */
+body.axxa-inspecting {
+	touch-action: none !important;
+}
+body.axxa-inspecting .axxa-inspector-view,
+body.axxa-inspecting .axxa-floating,
+body.axxa-inspecting .axxa-floating * {
+	touch-action: auto;
+}
+body.axxa-inspecting .axxa-inspector-view {
+	touch-action: pan-y;
+}
+
+body.axxa-high-contrast .axxa-overlay-content {
+	outline-width: 2px;
+}
+
+/* ── Inspector panel ──────────────────────────────────────────────────────── */
+
+.axxa-inspector-view {
+	font-size: calc(var(--font-ui-small) * var(--axxa-ui-scale));
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow-y: auto;
+}
+
+.axxa-header {
+	display: flex;
+	gap: 6px;
+	padding: 8px;
+	position: sticky;
+	top: 0;
+	background: var(--background-secondary);
+	z-index: 2;
+}
+
+.axxa-breadcrumb {
+	padding: 4px 8px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	flex-wrap: wrap;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.axxa-crumb {
+	background: none;
+	border: none;
+	color: var(--text-accent);
+	cursor: pointer;
+	padding: 1px 3px;
+	border-radius: 3px;
+}
+.axxa-crumb:hover {
+	background: var(--background-modifier-hover);
+}
+
+.axxa-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.axxa-tab {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	background: none;
+	border: none;
+	padding: 4px 8px;
+	border-radius: 6px;
+	cursor: pointer;
+	color: var(--text-muted);
+}
+.axxa-tab:hover {
+	background: var(--background-modifier-hover);
+}
+.axxa-tab.is-active {
+	background: var(--background-modifier-active-hover);
+	color: var(--text-normal);
+}
+.axxa-tab-icon {
+	display: inline-flex;
+}
+
+.axxa-body {
+	padding: 8px;
+	flex: 1;
+}
+
+.axxa-card {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 10px;
+	margin-bottom: 10px;
+}
+.axxa-card h4 {
+	margin: 0 0 8px;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-muted);
+}
+
+.axxa-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 10px;
+	border-radius: 6px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	cursor: pointer;
+}
+.axxa-btn:hover {
+	background: var(--interactive-hover);
+}
+.axxa-btn.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+.axxa-btn.mod-warning {
+	border-color: var(--text-error);
+	color: var(--text-error);
+}
+.axxa-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.axxa-btn-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.axxa-muted {
+	color: var(--text-faint);
+}
+
+.axxa-empty {
+	padding: 24px;
+	text-align: center;
+	color: var(--text-muted);
+}
+
+/* box model + property rows */
+.axxa-boxmodel {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 4px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+}
+
+.axxa-prop-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 2px 0;
+}
+.axxa-prop-row.is-edited .axxa-prop-key {
+	color: var(--text-accent);
+	font-weight: 600;
+}
+.axxa-prop-key {
+	flex: 0 0 40%;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-prop-val,
+.axxa-search {
+	flex: 1;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 2px 6px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-normal);
+}
+.axxa-search {
+	width: 100%;
+	margin-bottom: 8px;
+}
+
+/* matched rules */
+.axxa-rule {
+	border-top: 1px solid var(--background-modifier-border);
+	padding: 6px 0;
+}
+.axxa-rule-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+.axxa-rule-selector {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+}
+.axxa-decl {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	padding-left: 12px;
+	color: var(--text-muted);
+}
+.axxa-decl.is-overridden {
+	text-decoration: line-through;
+	opacity: 0.55;
+}
+
+.axxa-origin {
+	font-size: 10px;
+	padding: 1px 5px;
+	border-radius: 4px;
+	text-transform: uppercase;
+	background: var(--background-modifier-border);
+}
+.axxa-origin-theme { background: #4c6ef5; color: #fff; }
+.axxa-origin-snippet { background: #7bc86c; color: #06250a; }
+.axxa-origin-plugin { background: #b07be0; color: #fff; }
+.axxa-origin-user-experiment { background: #f2a23c; color: #2b1700; }
+.axxa-origin-inline { background: #888; color: #fff; }
+
+/* DOM tree / search */
+.axxa-tree-node {
+	display: block;
+	width: 100%;
+	text-align: left;
+	background: none;
+	border: none;
+	padding: 3px 4px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-normal);
+	cursor: pointer;
+	border-radius: 4px;
+}
+.axxa-tree-node:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* mutation timeline */
+.axxa-mut {
+	display: flex;
+	gap: 8px;
+	padding: 3px 0;
+	font-size: 11px;
+	border-left: 3px solid transparent;
+	padding-left: 6px;
+}
+.axxa-mut-element-added { border-color: #7bc86c; }
+.axxa-mut-element-removed { border-color: var(--text-error); }
+.axxa-mut-class-modified { border-color: #4c6ef5; }
+.axxa-mut-style-changed { border-color: #f2a23c; }
+.axxa-mut-attribute-changed { border-color: #888; }
+
+/* css editor */
+.axxa-css-editor {
+	width: 100%;
+	min-height: 90px;
+	margin-top: 6px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 6px;
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	color: var(--text-normal);
+	resize: vertical;
+}
+
+/* ── Visual identification (Feature 4) ────────────────────────────────────── */
+.axxa-vt-red { outline: 3px solid #ff3b30 !important; outline-offset: -1px; }
+.axxa-vt-green { outline: 3px solid #34c759 !important; outline-offset: -1px; }
+.axxa-vt-blue { outline: 3px solid #0a84ff !important; outline-offset: -1px; }
+.axxa-vt-outline { outline: 2px dashed var(--interactive-accent) !important; }
+.axxa-vt-hidden { visibility: hidden !important; }
+.axxa-vt-focus { outline: 3px solid var(--interactive-accent) !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.35) !important; }
+
+.axxa-vt-pulse { animation: axxa-pulse 1s ease-in-out infinite; }
+.axxa-vt-flash { animation: axxa-flash 0.6s ease-out; }
+
+@keyframes axxa-pulse {
+	0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--interactive-accent) 70%, transparent); }
+	50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--interactive-accent) 0%, transparent); }
+}
+@keyframes axxa-flash {
+	0% { background-color: var(--interactive-accent); }
+	100% { background-color: transparent; }
+}
+
+/* dim others */
+body.axxa-dim-active *:not(.axxa-dim-keep):not(.axxa-overlay-root):not(.axxa-inspector-view) {
+	opacity: 0.15;
+	transition: opacity 0.2s ease;
+}
+
+/* ── Isolation mode (Feature 5) ───────────────────────────────────────────── */
+.axxa-isolation-hidden {
+	display: none !important;
+}
+
+/* ── Layout debugging (Feature 10) ────────────────────────────────────────── */
+.axxa-layout-flex-containers { outline: 1px dashed #e64980 !important; }
+.axxa-layout-grid-containers { outline: 1px dashed #7048e8 !important; }
+.axxa-layout-scroll-containers { outline: 1px solid #1098ad !important; }
+.axxa-layout-sticky-elements { outline: 2px solid #f59f00 !important; }
+.axxa-layout-fixed-elements { outline: 2px solid #e8590c !important; }
+.axxa-layout-absolute-elements { outline: 1px dotted #2f9e44 !important; }
+.axxa-layout-overflow-boundaries { outline: 1px solid #c2255c !important; }
+.axxa-layout-stacking-contexts { outline: 1px solid #9c36b5 !important; }
+.axxa-layout-padding-regions { box-shadow: inset 0 0 0 99px color-mix(in srgb, #7bc86c 8%, transparent); }
+.axxa-layout-margins { outline: 1px solid color-mix(in srgb, #f2a23c 60%, transparent) !important; }
+.axxa-layout-safe-areas { outline: 2px dashed #099268 !important; }
+
+/* ── Floating controls (Freeze + DOM navigation arrows) ───────────────────── */
+
+.axxa-floating {
+	position: fixed;
+	right: 12px;
+	bottom: 12px;
+	z-index: 2147483000; /* above modals, popovers and the overlay */
+	display: none; /* toggled to flex */
+	flex-direction: column;
+	gap: 6px;
+	width: 190px;
+	padding: 8px;
+	border-radius: 12px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+	font-size: 12px;
+	color: var(--text-normal);
+	touch-action: none; /* let us own drag gestures */
+	user-select: none;
+}
+
+.axxa-floating-handle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	cursor: grab;
+	font-weight: 600;
+	font-size: 11px;
+	color: var(--text-muted);
+	padding-bottom: 2px;
+}
+.axxa-floating-handle:active {
+	cursor: grabbing;
+}
+.axxa-floating-x {
+	background: none;
+	border: none;
+	color: var(--text-faint);
+	cursor: pointer;
+	display: inline-flex;
+	padding: 2px;
+	border-radius: 4px;
+}
+.axxa-floating-x:hover {
+	background: var(--background-modifier-hover);
+}
+
+.axxa-floating-row {
+	display: flex;
+	gap: 6px;
+}
+.axxa-floating-btn {
+	flex: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 8px 6px;
+	min-height: 38px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	cursor: pointer;
+}
+.axxa-floating-btn:hover {
+	background: var(--interactive-hover);
+}
+.axxa-floating-btn.axxa-freeze.is-active {
+	background: var(--color-red, #e5484d);
+	color: #fff;
+	border-color: transparent;
+}
+
+.axxa-floating-readout {
+	padding: 6px 8px;
+	border-radius: 8px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+}
+.axxa-floating-label {
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	word-break: break-all;
+	color: var(--text-accent);
+}
+.axxa-floating-meta {
+	font-size: 10px;
+	color: var(--text-faint);
+	margin-top: 2px;
+}
+
+.axxa-floating-nav {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+.axxa-floating-nav-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+.axxa-floating-nav-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 38px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	cursor: pointer;
+}
+.axxa-floating-nav-btn:hover:not(:disabled) {
+	background: var(--interactive-hover);
+}
+.axxa-floating-nav-btn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+.axxa-floating-dot {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	color: var(--text-faint);
+}
+
+.axxa-floating.axxa-floating-wide {
+	width: 280px;
+}
+.axxa-styles-toggle.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: transparent;
+}
+.axxa-floating-styles {
+	max-height: 46vh;
+	overflow-y: auto;
+	overflow-x: hidden;
+	touch-action: pan-y;
+}
+
+/* ── Visual style editor (dropdowns + colour swatches + quick toggles) ─────── */
+
+.axxa-style-editor {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.axxa-style-toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.axxa-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 5px 8px;
+	min-height: 32px;
+	border-radius: 999px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+	font-size: 11px;
+	cursor: pointer;
+}
+.axxa-chip:hover {
+	background: var(--interactive-hover);
+}
+.axxa-chip.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: transparent;
+}
+.axxa-chip.mod-warning {
+	border-color: var(--text-error);
+	color: var(--text-error);
+}
+.axxa-chip-icon {
+	display: inline-flex;
+}
+
+.axxa-style-group {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 6px;
+}
+.axxa-style-group-label {
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-faint);
+	margin-bottom: 4px;
+}
+.axxa-style-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 0;
+}
+.axxa-style-row.is-edited .axxa-style-key {
+	color: var(--text-accent);
+	font-weight: 600;
+}
+.axxa-style-key {
+	flex: 0 0 42%;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-style-swatch {
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	border: 1px solid var(--background-modifier-border);
+	flex: 0 0 auto;
+}
+.axxa-style-select {
+	flex: 1;
+	min-width: 0;
+	min-height: 32px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 3px 6px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-normal);
+}
+
+/* Whole-screen "frozen" indicator — clear visual feedback that taps are being
+   captured for selection instead of reaching Obsidian. */
+body.axxa-frozen::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 2147482000;
+	border: 2px solid var(--color-red, #e5484d);
+	box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-red, #e5484d) 25%, transparent);
+}
+
+/* ── Mobile (Feature 18) ──────────────────────────────────────────────────── */
+body.axxa-mobile .axxa-btn {
+	padding: 8px 12px;
+	min-height: 36px;
+}
+body.axxa-mobile .axxa-prop-val,
+body.axxa-mobile .axxa-search {
+	min-height: 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.axxa-vt-pulse,
+	.axxa-vt-flash {
+		animation: none;
+	}
+}
+
+/* ============================================================================
+   Design-system overhaul — refined, mobile-first product polish.
+   Rules below intentionally come last so they take precedence.
+   ========================================================================== */
+
+/* Tabs: a single horizontally-scrollable row with snap — never wraps or
+   crowds on a narrow phone screen. */
+.axxa-tabs {
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	scroll-snap-type: x proximity;
+	scrollbar-width: none;
+	-webkit-overflow-scrolling: touch;
+	gap: 4px;
+	padding: 6px 8px;
+}
+.axxa-tabs::-webkit-scrollbar {
+	display: none;
+}
+.axxa-tab {
+	flex: 0 0 auto;
+	scroll-snap-align: start;
+	min-height: var(--axxa-touch);
+	position: relative;
+}
+
+/* Cards: softer, more breathing room, subtle depth. */
+.axxa-card {
+	border-radius: var(--axxa-radius);
+	padding: var(--axxa-pad);
+	margin-bottom: var(--axxa-gap);
+	background: var(--background-primary-alt, var(--background-secondary));
+}
+.axxa-card h4 {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+}
+
+/* Buttons: bigger touch targets, clearer hierarchy. */
+.axxa-btn {
+	min-height: var(--axxa-touch);
+	border-radius: var(--axxa-radius-sm);
+	transition: background 0.12s ease, transform 0.06s ease;
+}
+.axxa-btn:active {
+	transform: scale(0.97);
+}
+.axxa-btn.mod-cta {
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	border-color: transparent;
+	font-weight: 600;
+}
+
+/* Count badge (Changes tab, snippet button, change rows). */
+.axxa-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 5px;
+	border-radius: 999px;
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1;
+}
+.axxa-tab .axxa-badge {
+	position: absolute;
+	top: 2px;
+	right: 2px;
+}
+.axxa-badge.is-hidden,
+.axxa-load-more.is-hidden {
+	display: none;
+}
+
+/* Incremental "small list" + load-more. */
+.axxa-list-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 6px;
+}
+.axxa-load-more {
+	flex: 1;
+}
+.axxa-empty-row {
+	padding: 16px 8px;
+	text-align: center;
+}
+
+/* Changes list rows. */
+.axxa-change {
+	border-top: 1px solid var(--background-modifier-border);
+	padding: 8px 0;
+}
+.axxa-change:first-child {
+	border-top: none;
+}
+.axxa-change-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.axxa-change-jump {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--text-normal);
+	text-align: left;
+	padding: 4px 0;
+	min-height: var(--axxa-touch);
+}
+.axxa-change-label {
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	color: var(--text-accent);
+	word-break: break-all;
+}
+.axxa-icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--axxa-touch);
+	height: var(--axxa-touch);
+	border-radius: var(--axxa-radius-sm);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.axxa-icon-btn:hover {
+	background: var(--interactive-hover);
+	color: var(--text-normal);
+}
+
+/* On-screen debug log. */
+.axxa-debuglog {
+	left: 12px;
+	right: 12px;
+	bottom: 12px;
+	width: auto;
+	max-width: 520px;
+	margin: 0 auto;
+}
+.axxa-debuglog-actions {
+	display: flex;
+	gap: 2px;
+}
+.axxa-debuglog-list {
+	max-height: 38vh;
+	overflow-y: auto;
+	font-family: var(--font-monospace);
+	font-size: 10px;
+	touch-action: pan-y;
+}
+.axxa-debug-line {
+	display: flex;
+	gap: 6px;
+	padding: 2px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.axxa-debug-time {
+	color: var(--text-faint);
+	flex: 0 0 auto;
+}
+.axxa-debug-level {
+	flex: 0 0 52px;
+	text-transform: uppercase;
+	font-weight: 700;
+	color: var(--text-muted);
+}
+.axxa-debug-msg {
+	flex: 1;
+	word-break: break-word;
+}
+.axxa-debug-error .axxa-debug-level,
+.axxa-debug-error .axxa-debug-msg {
+	color: var(--text-error);
+}
+.axxa-debug-edit .axxa-debug-level {
+	color: var(--text-accent);
+}
+
+/* Larger phone-friendly hit targets everywhere when running on mobile. */
+body.axxa-mobile .axxa-btn,
+body.axxa-mobile .axxa-style-select,
+body.axxa-mobile .axxa-prop-val,
+body.axxa-mobile .axxa-search,
+body.axxa-mobile .axxa-chip {
+	min-height: 40px;
+}
+body.axxa-mobile .axxa-style-key {
+	flex-basis: 38%;
+}
+
+/* ── ✶ AXXA X-Ray (secret reveal) ─────────────────────────────────────────── */
+.axxa-xray-root {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 9998;
+	pointer-events: none;
+	overflow: hidden;
+}
+.axxa-xray-box {
+	position: fixed;
+	top: 0;
+	left: 0;
+	outline: 1.5px solid;
+	outline-offset: -1px;
+	border-radius: 2px;
+	pointer-events: none;
+	transition: opacity 0.2s ease;
+}
+.axxa-xray-tag {
+	position: fixed;
+	top: 0;
+	left: 0;
+	transform-origin: top left;
+	padding: 1px 5px;
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: #fff;
+	border-radius: 0 0 4px 0;
+	white-space: nowrap;
+	pointer-events: auto;
+	cursor: pointer;
+	max-width: 50vw;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-xray-legend {
+	left: 50%;
+	right: auto;
+	top: 12px;
+	bottom: auto;
+	transform: translateX(-50%);
+	width: 220px;
+}
+.axxa-xray-legend-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	max-height: 40vh;
+	overflow-y: auto;
+}
+.axxa-xray-legend-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+	text-transform: capitalize;
+}
+.axxa-xray-legend-row .axxa-badge {
+	margin-left: auto;
+}
+.axxa-xray-legend-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex: 0 0 auto;
+}
+.axxa-xray-sigil {
+	margin-top: 8px;
+	padding-top: 6px;
+	border-top: 1px solid var(--background-modifier-border);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-align: center;
+	color: var(--text-faint);
+}
+
+/* ── Live DOM tree viewer ─────────────────────────────────────────────────── */
+.axxa-domtree-modes {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 8px;
+}
+.axxa-domtree-scroll {
+	max-height: 52vh;
+	overflow: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--axxa-radius-sm);
+	background: var(--background-primary);
+	touch-action: pan-y;
+}
+.axxa-domtree-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 30px;
+	padding-right: 8px;
+	cursor: pointer;
+	border-radius: 4px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	white-space: nowrap;
+}
+.axxa-domtree-row:hover {
+	background: var(--background-modifier-hover);
+}
+.axxa-domtree-row.is-selected {
+	background: color-mix(in srgb, var(--axxa-accent) 22%, transparent);
+	outline: 1px solid var(--axxa-accent);
+}
+.axxa-domtree-twisty {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+.axxa-domtree-twisty.is-leaf {
+	opacity: 0;
+}
+.axxa-domtree-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-domtree-dot {
+	width: 8px;
+	height: 8px;
+	margin-left: auto;
+	border-radius: 50%;
+	background: var(--color-red, #e5484d);
+	flex: 0 0 auto;
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-red, #e5484d) 25%, transparent);
+}
+.axxa-domtree-more {
+	padding: 4px 8px 4px 24px;
+	font-size: 10px;
+}
+
+/* ── Floating code editor (snippet sandbox) ───────────────────────────────── */
+.axxa-code-toggle.is-active {
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	border-color: transparent;
+}
+.axxa-floating-code {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.axxa-code-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.axxa-code {
+	display: flex;
+	max-height: 40vh;
+	min-height: 120px;
+	border-radius: var(--axxa-radius-sm);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	overflow: hidden;
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	line-height: 1.5;
+}
+.axxa-code-gutter {
+	flex: 0 0 auto;
+	padding: 8px 6px;
+	text-align: right;
+	color: var(--text-faint);
+	background: var(--background-secondary);
+	border-right: 1px solid var(--background-modifier-border);
+	user-select: none;
+	overflow: hidden;
+	min-width: 28px;
+}
+.axxa-code-gutter > div {
+	height: 1.5em;
+}
+.axxa-code-area {
+	flex: 1;
+	resize: none;
+	border: none;
+	outline: none;
+	padding: 8px;
+	background: transparent;
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	line-height: 1.5;
+	tab-size: 2;
+	white-space: pre;
+	overflow: auto;
+	touch-action: pan-y;
+}
+.axxa-code-area::placeholder {
+	color: var(--text-faint);
+}
+
+/* ============================================================================
+   FAB v2 — sections, resize, field chooser, compact tree + more attitude.
+   Last in the file, so these win.
+   ========================================================================== */
+
+/* The floating widget: sharper, more deliberate, with an accent spine. */
+.axxa-floating {
+	border-radius: 14px;
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: var(--axxa-shadow), 0 0 0 1px rgba(0, 0, 0, 0.04);
+	overflow: hidden;
+}
+.axxa-floating .axxa-floating-handle {
+	margin: -8px -8px 2px;
+	padding: 8px 10px;
+	background: linear-gradient(
+		90deg,
+		color-mix(in srgb, var(--axxa-accent) 22%, var(--background-secondary)),
+		var(--background-secondary)
+	);
+	border-bottom: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	font-size: 10px;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+/* Section toggles look like firm, full-width rows. */
+.axxa-section-toggle {
+	justify-content: flex-start;
+	gap: 8px;
+	font-weight: 600;
+	border-color: transparent;
+	background: var(--background-secondary);
+}
+.axxa-section-toggle.is-active {
+	background: color-mix(in srgb, var(--axxa-accent) 16%, var(--background-secondary));
+	border-color: color-mix(in srgb, var(--axxa-accent) 50%, transparent);
+	color: var(--text-normal);
+}
+
+/* Open sections share one user-resizable max-height. */
+.axxa-floating-section {
+	overflow-y: auto;
+	overflow-x: hidden;
+	touch-action: pan-y;
+}
+.axxa-floating-styles,
+.axxa-floating-code {
+	max-height: var(--axxa-fab-section-maxh, 46vh);
+}
+.axxa-floating-tree {
+	max-height: none;
+}
+.axxa-domtree.is-compact .axxa-domtree-scroll {
+	max-height: var(--axxa-fab-section-maxh, 40vh);
+}
+.axxa-domtree.is-compact .axxa-domtree-row {
+	min-height: 34px;
+}
+
+/* Field chooser: compact chip cloud, scrollable. */
+.axxa-fab-fields {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	max-height: 26vh;
+	overflow-y: auto;
+	padding: 6px 0;
+	margin-bottom: 6px;
+	border-bottom: 1px dashed var(--background-modifier-border);
+	touch-action: pan-y;
+}
+.axxa-field-chip {
+	font-size: 10px;
+	min-height: 28px;
+	padding: 3px 7px;
+	opacity: 0.55;
+}
+.axxa-field-chip.is-active {
+	opacity: 1;
+}
+
+/* Resize grip, bottom-right corner. */
+.axxa-floating-grip {
+	position: absolute;
+	right: 2px;
+	bottom: 2px;
+	width: 22px;
+	height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-faint);
+	cursor: nwse-resize;
+	touch-action: none;
+	opacity: 0.6;
+}
+.axxa-floating-grip:hover {
+	opacity: 1;
+}
+
+/* Freeze: meaner. */
+.axxa-floating-btn.axxa-freeze.is-active {
+	box-shadow: 0 0 0 1px var(--color-red, #e5484d), 0 0 14px color-mix(in srgb, var(--color-red, #e5484d) 55%, transparent);
+}
+body.axxa-frozen::after {
+	border-width: 3px;
+	animation: axxa-frozen-pulse 2.4s ease-in-out infinite;
+}
+@keyframes axxa-frozen-pulse {
+	0%, 100% { opacity: 0.85; }
+	50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+	body.axxa-frozen::after { animation: none; }
+}
+
+/* ============================================================================
+   FAB v3 — compact icon toolbar, minimise bubble, status bar.
+   ========================================================================== */
+
+/* Tighter widget overall. */
+.axxa-floating {
+	width: 178px;
+	gap: 5px;
+	padding: 6px;
+}
+.axxa-floating.axxa-floating-wide {
+	width: 264px;
+}
+.axxa-floating .axxa-floating-handle {
+	margin: -6px -6px 0;
+	padding: 5px 8px;
+}
+.axxa-floating-title {
+	cursor: grab;
+}
+.axxa-floating-actions {
+	display: flex;
+	gap: 2px;
+}
+
+/* Icon toolbar: one tight row, wraps if needed. */
+.axxa-tools {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 3px;
+}
+.axxa-tool {
+	flex: 1 1 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	height: 34px;
+	min-width: 34px;
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.axxa-tool:hover {
+	background: var(--interactive-hover);
+	color: var(--text-normal);
+}
+.axxa-tool.is-active {
+	background: color-mix(in srgb, var(--axxa-accent) 20%, var(--background-secondary));
+	border-color: color-mix(in srgb, var(--axxa-accent) 55%, transparent);
+	color: var(--text-normal);
+}
+.axxa-tool.axxa-freeze.is-active {
+	background: var(--color-red, #e5484d);
+	color: #fff;
+	border-color: transparent;
+	box-shadow: 0 0 12px color-mix(in srgb, var(--color-red, #e5484d) 55%, transparent);
+}
+.axxa-tool .axxa-badge {
+	position: absolute;
+	top: -4px;
+	right: -4px;
+}
+
+/* Compact readout with inline nav. */
+.axxa-floating-readout {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 7px;
+}
+.axxa-readout-text {
+	flex: 1;
+	min-width: 0;
+}
+.axxa-floating-label {
+	font-size: 10px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.axxa-floating-meta {
+	font-size: 9px;
+}
+.axxa-floating-readout .axxa-floating-nav-row {
+	gap: 2px;
+	flex: 0 0 auto;
+}
+.axxa-floating-nav-btn {
+	width: 30px;
+	height: 30px;
+}
+
+/* Minimised: collapse to a single round bubble. */
+.axxa-fab-launcher {
+	display: none;
+	width: 48px;
+	height: 48px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: none;
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	cursor: pointer;
+	box-shadow: var(--axxa-shadow);
+}
+.axxa-floating.is-min {
+	width: auto !important;
+	padding: 0;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	overflow: visible;
+}
+.axxa-floating.is-min > *:not(.axxa-fab-launcher) {
+	display: none !important;
+}
+.axxa-floating.is-min .axxa-fab-launcher {
+	display: flex;
+}
+
+/* Status bar item. */
+.axxa-statusbar {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+.axxa-statusbar.is-active .axxa-statusbar-icon {
+	color: var(--color-red, #e5484d);
+}
+.axxa-statusbar-count {
+	font-size: 10px;
+	font-weight: 700;
+	min-width: 14px;
+	height: 14px;
+	padding: 0 3px;
+	border-radius: 7px;
+	background: var(--axxa-accent);
+	color: var(--text-on-accent);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.axxa-statusbar-count.is-hidden {
+	display: none;
+}

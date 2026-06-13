@@ -1,0 +1,11 @@
+{
+	"id": "axxa-inspector",
+	"name": "AXXA Inspector",
+	"version": "0.1.0",
+	"minAppVersion": "1.4.0",
+	"description": "A visual DOM & CSS DevTools experience for Obsidian plugin and theme creators. Inspect, experiment, validate, export and save — without opening Electron DevTools.",
+	"author": "AXXA Studio Lab",
+	"authorUrl": "https://github.com/rafaelpsyik/axxa-os-inspector",
+	"fundingUrl": "https://github.com/rafaelpsyik/axxa-os-inspector",
+	"isDesktopOnly": false
+}

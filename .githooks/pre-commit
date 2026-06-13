@@ -1,0 +1,25 @@
+#!/bin/sh
+# AXXA Inspector — every commit ships a fresh build.
+# Rebuilds the plugin and refreshes the ready-to-install bundle in output/,
+# then stages it so the committed output/ always matches the committed source.
+#
+# Enabled automatically via `npm install` (the "prepare" script sets
+# core.hooksPath to .githooks). Bypass with `git commit --no-verify` if needed.
+
+set -e
+
+# Skip when there is no build toolchain available (e.g. fresh clone before
+# `npm install`) so committing docs-only changes never hard-fails.
+if [ ! -d node_modules ]; then
+	echo "[pre-commit] node_modules missing — skipping build (run 'npm install')."
+	exit 0
+fi
+
+echo "[pre-commit] building plugin + refreshing output/ bundle…"
+npm run package
+
+git add output/axxa-inspector/manifest.json \
+        output/axxa-inspector/main.js \
+        output/axxa-inspector/styles.css
+
+echo "[pre-commit] output bundle staged."
