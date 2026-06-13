@@ -1076,3 +1076,124 @@ body.axxa-mobile .axxa-style-key {
 .axxa-code-area::placeholder {
 	color: var(--text-faint);
 }
+
+/* ============================================================================
+   FAB v2 — sections, resize, field chooser, compact tree + more attitude.
+   Last in the file, so these win.
+   ========================================================================== */
+
+/* The floating widget: sharper, more deliberate, with an accent spine. */
+.axxa-floating {
+	border-radius: 14px;
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: var(--axxa-shadow), 0 0 0 1px rgba(0, 0, 0, 0.04);
+	overflow: hidden;
+}
+.axxa-floating .axxa-floating-handle {
+	margin: -8px -8px 2px;
+	padding: 8px 10px;
+	background: linear-gradient(
+		90deg,
+		color-mix(in srgb, var(--axxa-accent) 22%, var(--background-secondary)),
+		var(--background-secondary)
+	);
+	border-bottom: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	font-size: 10px;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+/* Section toggles look like firm, full-width rows. */
+.axxa-section-toggle {
+	justify-content: flex-start;
+	gap: 8px;
+	font-weight: 600;
+	border-color: transparent;
+	background: var(--background-secondary);
+}
+.axxa-section-toggle.is-active {
+	background: color-mix(in srgb, var(--axxa-accent) 16%, var(--background-secondary));
+	border-color: color-mix(in srgb, var(--axxa-accent) 50%, transparent);
+	color: var(--text-normal);
+}
+
+/* Open sections share one user-resizable max-height. */
+.axxa-floating-section {
+	overflow-y: auto;
+	overflow-x: hidden;
+	touch-action: pan-y;
+}
+.axxa-floating-styles,
+.axxa-floating-code {
+	max-height: var(--axxa-fab-section-maxh, 46vh);
+}
+.axxa-floating-tree {
+	max-height: none;
+}
+.axxa-domtree.is-compact .axxa-domtree-scroll {
+	max-height: var(--axxa-fab-section-maxh, 40vh);
+}
+.axxa-domtree.is-compact .axxa-domtree-row {
+	min-height: 34px;
+}
+
+/* Field chooser: compact chip cloud, scrollable. */
+.axxa-fab-fields {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	max-height: 26vh;
+	overflow-y: auto;
+	padding: 6px 0;
+	margin-bottom: 6px;
+	border-bottom: 1px dashed var(--background-modifier-border);
+	touch-action: pan-y;
+}
+.axxa-field-chip {
+	font-size: 10px;
+	min-height: 28px;
+	padding: 3px 7px;
+	opacity: 0.55;
+}
+.axxa-field-chip.is-active {
+	opacity: 1;
+}
+
+/* Resize grip, bottom-right corner. */
+.axxa-floating-grip {
+	position: absolute;
+	right: 2px;
+	bottom: 2px;
+	width: 22px;
+	height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-faint);
+	cursor: nwse-resize;
+	touch-action: none;
+	opacity: 0.6;
+}
+.axxa-floating-grip:hover {
+	opacity: 1;
+}
+
+/* Freeze: meaner. */
+.axxa-floating-btn.axxa-freeze.is-active {
+	box-shadow: 0 0 0 1px var(--color-red, #e5484d), 0 0 14px color-mix(in srgb, var(--color-red, #e5484d) 55%, transparent);
+}
+body.axxa-frozen::after {
+	border-width: 3px;
+	animation: axxa-frozen-pulse 2.4s ease-in-out infinite;
+}
+@keyframes axxa-frozen-pulse {
+	0%, 100% { opacity: 0.85; }
+	50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+	body.axxa-frozen::after { animation: none; }
+}

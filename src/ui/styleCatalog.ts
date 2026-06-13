@@ -130,3 +130,32 @@ export const STYLE_GROUPS: StyleGroup[] = [
 		],
 	},
 ];
+
+/** Flat list of every property in the catalogue. */
+export const ALL_PROPERTIES: string[] = STYLE_GROUPS.flatMap((g) =>
+	g.properties.map((p) => p.property),
+);
+
+/** The lean default set shown in the compact floating editor. */
+export const ESSENTIAL_PROPERTIES: string[] = [
+	"display",
+	"visibility",
+	"position",
+	"z-index",
+	"opacity",
+	"color",
+	"background-color",
+	"width",
+	"height",
+	"padding",
+	"margin",
+];
+
+/** Look up a single property descriptor by name. */
+export function findProperty(property: string): StyleProperty | undefined {
+	for (const g of STYLE_GROUPS) {
+		const hit = g.properties.find((p) => p.property === property);
+		if (hit) return hit;
+	}
+	return undefined;
+}

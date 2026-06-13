@@ -6,7 +6,9 @@ import { buildUniqueSelector } from "../utils/selector";
 import { copyToClipboard } from "../utils/clipboard";
 import { debounce, type Cancellable } from "../utils/schedule";
 import { renderStyleEditor } from "./StyleEditor";
+import { ALL_PROPERTIES } from "./styleCatalog";
 import { attachCodeEditor } from "./CodeEditor";
+import { DomTreeView } from "./DomTreeView";
 
 /**
  * Floating, always-on-top inspector controls.
@@ -34,13 +36,18 @@ export class FloatingControls implements IDisposable {
 		{} as never;
 	private stylesToggle!: HTMLButtonElement;
 	private stylesEl!: HTMLElement;
+	private styleBodyEl: HTMLElement | null = null;
 	private snippetBtn!: HTMLButtonElement;
 	private codeToggle!: HTMLButtonElement;
 	private codeEl!: HTMLElement;
+	private treeToggle!: HTMLButtonElement;
+	private treeEl!: HTMLElement;
+	private treeView: DomTreeView | null = null;
 	private scratchId: string | null = null;
 	private pushCode!: Cancellable<(css: string) => void>;
 	private stylesOpen = false;
 	private codeOpen = false;
+	private treeOpen = false;
 	private visible = false;
 
 	constructor(
@@ -60,8 +67,9 @@ export class FloatingControls implements IDisposable {
 		this.buildPrimaryRow();
 		this.buildLabel();
 		this.buildNav();
-		this.buildStyles();
-		this.buildCode();
+		this.buildSections();
+		this.buildResizeGrip();
+		this.applyPersistedSize();
 
 		// Reflect engine state in the widget.
 		const { bus } = this.container;
@@ -197,58 +205,135 @@ export class FloatingControls implements IDisposable {
 		return btn;
 	}
 
-	/** Expandable list-driven style editor (dropdowns + colour swatches). */
-	private buildStyles(): void {
-		this.stylesToggle = this.root.createEl("button", { cls: "axxa-floating-btn axxa-styles-toggle" });
-		setIcon(this.stylesToggle.createSpan(), "sliders-horizontal");
-		this.stylesToggle.createSpan({ text: "Styles" });
-		this.stylesToggle.onclick = () => {
+	/** Build the three collapsible sections: Styles · DOM tree · Code editor. */
+	private buildSections(): void {
+		this.stylesToggle = this.sectionToggle("Styles", "sliders-horizontal", () => {
 			this.stylesOpen = !this.stylesOpen;
-			this.root.toggleClass("axxa-floating-wide", this.stylesOpen || this.codeOpen);
 			this.renderStyles();
-		};
-		this.stylesEl = this.root.createDiv({ cls: "axxa-floating-styles" });
-		this.stylesEl.style.display = "none";
-	}
-
-	/** (Re)render the style editor for the current selection when expanded. */
-	private renderStyles(): void {
-		const el = this.container.resolve(Tokens.Inspector).selected;
-		this.stylesToggle.toggleClass("is-active", this.stylesOpen);
-		if (!this.stylesOpen || !el) {
-			this.stylesEl.style.display = "none";
-			this.stylesEl.empty();
-			return;
-		}
-		this.stylesEl.style.display = "block";
-		renderStyleEditor(this.stylesEl, {
-			element: el,
-			css: this.container.resolve(Tokens.Css),
-			// After a change the swatch/edited markers must refresh.
-			onChange: () => this.renderStyles(),
 		});
-	}
+		this.stylesEl = this.root.createDiv({ cls: "axxa-floating-styles axxa-floating-section" });
+		this.stylesEl.style.display = "none";
 
-	/**
-	 * Expandable CSS snippet code editor (Feature 12) — paste, activate and edit
-	 * live, entirely from the floating widget. Backed by the ExperimentSandbox's
-	 * single scratch snippet so it persists and injects without a reload.
-	 */
-	private buildCode(): void {
-		this.codeToggle = this.root.createEl("button", { cls: "axxa-floating-btn axxa-code-toggle" });
-		setIcon(this.codeToggle.createSpan(), "code");
-		this.codeToggle.createSpan({ text: "Code editor" });
-		this.codeToggle.onclick = () => {
+		this.treeToggle = this.sectionToggle("DOM tree", "list-tree", () => {
+			this.treeOpen = !this.treeOpen;
+			this.renderTree();
+		});
+		this.treeEl = this.root.createDiv({ cls: "axxa-floating-tree axxa-floating-section" });
+		this.treeEl.style.display = "none";
+
+		this.codeToggle = this.sectionToggle("Code editor", "code", () => {
 			this.codeOpen = !this.codeOpen;
-			this.root.toggleClass("axxa-floating-wide", this.codeOpen || this.stylesOpen);
 			this.renderCode();
-		};
-		this.codeEl = this.root.createDiv({ cls: "axxa-floating-code" });
+		});
+		this.codeEl = this.root.createDiv({ cls: "axxa-floating-code axxa-floating-section" });
 		this.codeEl.style.display = "none";
 	}
 
+	private sectionToggle(label: string, icon: string, onClick: () => void): HTMLButtonElement {
+		const btn = this.root.createEl("button", { cls: "axxa-floating-btn axxa-section-toggle" });
+		setIcon(btn.createSpan(), icon);
+		btn.createSpan({ text: label });
+		btn.onclick = onClick;
+		return btn;
+	}
+
+	/** The widget widens whenever any rich section is open. */
+	private setWide(): void {
+		this.root.toggleClass("axxa-floating-wide", this.stylesOpen || this.codeOpen || this.treeOpen);
+	}
+
+	// ── Styles section (compact, field-selectable) ────────────────────────────
+
+	/** (Re)render the compact style editor + the field chooser chrome. */
+	private renderStyles(): void {
+		this.stylesToggle.toggleClass("is-active", this.stylesOpen);
+		this.setWide();
+		this.stylesEl.empty();
+		if (!this.stylesOpen) {
+			this.stylesEl.style.display = "none";
+			return;
+		}
+		this.stylesEl.style.display = "block";
+
+		// Toolbar: a "Fields" chooser to pick exactly which properties show.
+		const bar = this.stylesEl.createDiv({ cls: "axxa-code-bar" });
+		const chooser = bar.createEl("button", { cls: "axxa-chip" });
+		setIcon(chooser.createSpan({ cls: "axxa-chip-icon" }), "list-checks");
+		chooser.createSpan({ text: "Fields" });
+		const fieldsEl = this.stylesEl.createDiv({ cls: "axxa-fab-fields" });
+		fieldsEl.style.display = "none";
+		chooser.onclick = () => {
+			const open = fieldsEl.style.display === "none";
+			fieldsEl.style.display = open ? "flex" : "none";
+			chooser.toggleClass("is-active", open);
+			if (open) this.renderFieldChooser(fieldsEl);
+			else fieldsEl.empty();
+		};
+
+		this.styleBodyEl = this.stylesEl.createDiv();
+		this.renderStyleBody();
+	}
+
+	/** Re-render only the editor body — keeps chooser open + scroll intact. */
+	private renderStyleBody(): void {
+		if (!this.styleBodyEl) return;
+		const el = this.container.resolve(Tokens.Inspector).selected;
+		this.styleBodyEl.empty();
+		if (!el) {
+			this.styleBodyEl.createDiv({ cls: "axxa-muted axxa-empty-row", text: "Tap an element to edit it." });
+			return;
+		}
+		renderStyleEditor(this.styleBodyEl, {
+			element: el,
+			css: this.container.resolve(Tokens.Css),
+			compact: true,
+			properties: this.container.resolve(Tokens.Persistence).settings.fabStyleProps,
+			// No host rebuild — the editor refreshes itself in place (scroll-safe).
+		});
+	}
+
+	/** Chips to pick which properties appear in the compact editor (persisted). */
+	private renderFieldChooser(parent: HTMLElement): void {
+		parent.empty();
+		const persistence = this.container.resolve(Tokens.Persistence);
+		const selected = new Set(persistence.settings.fabStyleProps);
+		for (const prop of ALL_PROPERTIES) {
+			const chip = parent.createEl("button", {
+				cls: ["axxa-chip", "axxa-field-chip", selected.has(prop) ? "is-active" : ""],
+				text: prop,
+			});
+			chip.onclick = () => {
+				if (selected.has(prop)) selected.delete(prop);
+				else selected.add(prop);
+				chip.toggleClass("is-active", selected.has(prop));
+				persistence.updateSettings({ fabStyleProps: ALL_PROPERTIES.filter((p) => selected.has(p)) });
+				this.renderStyleBody(); // refresh editor only — chooser stays open
+			};
+		}
+	}
+
+	// ── DOM tree section (compact, mobile) ─────────────────────────────────────
+
+	private renderTree(): void {
+		this.treeToggle.toggleClass("is-active", this.treeOpen);
+		this.setWide();
+		if (!this.treeOpen) {
+			this.treeEl.style.display = "none";
+			this.treeView?.dispose();
+			this.treeView = null;
+			this.treeEl.empty();
+			return;
+		}
+		this.treeEl.style.display = "block";
+		this.treeEl.empty();
+		this.treeView = new DomTreeView(this.treeEl, this.container, true);
+	}
+
+	// ── Code editor section ────────────────────────────────────────────────────
+
 	private renderCode(): void {
 		this.codeToggle.toggleClass("is-active", this.codeOpen);
+		this.setWide();
 		if (!this.codeOpen) {
 			this.codeEl.style.display = "none";
 			this.codeEl.empty();
@@ -352,8 +437,72 @@ export class FloatingControls implements IDisposable {
 		enable(this.navButtons.previous, !!el.previousElementSibling);
 		enable(this.navButtons.next, !!el.nextElementSibling);
 
-		// Keep the expanded style editor pointed at the new selection.
-		if (this.stylesOpen) this.renderStyles();
+		// Re-point the open editor at the new selection (body only — keeps the
+		// field chooser open and the scroll position intact).
+		if (this.stylesOpen) this.renderStyleBody();
+	}
+
+	// ── resize + dragging ──────────────────────────────────────────────────────
+
+	/** A corner grip to resize the widget: width + open-section height. */
+	private buildResizeGrip(): void {
+		const grip = this.root.createDiv({ cls: "axxa-floating-grip" });
+		setIcon(grip, "move-diagonal-2");
+		grip.setAttr("aria-label", "Resize");
+
+		let sx = 0;
+		let sy = 0;
+		let sw = 0;
+		let sh = 0;
+		let resizing = false;
+		const onDown = (e: PointerEvent) => {
+			resizing = true;
+			sw = this.root.getBoundingClientRect().width;
+			sh = this.currentSectionHeight();
+			sx = e.clientX;
+			sy = e.clientY;
+			grip.setPointerCapture(e.pointerId);
+			e.stopPropagation();
+			e.preventDefault();
+		};
+		const onMove = (e: PointerEvent) => {
+			if (!resizing) return;
+			const w = clamp(sw + (e.clientX - sx), 190, window.innerWidth - 16);
+			const h = clamp(sh + (e.clientY - sy), 120, window.innerHeight - 120);
+			this.root.style.width = `${w}px`;
+			this.root.style.setProperty("--axxa-fab-section-maxh", `${h}px`);
+		};
+		const onUp = () => {
+			if (!resizing) return;
+			resizing = false;
+			this.persistSize();
+		};
+		grip.addEventListener("pointerdown", onDown);
+		grip.addEventListener("pointermove", onMove);
+		grip.addEventListener("pointerup", onUp);
+		this.group.register(() => {
+			grip.removeEventListener("pointerdown", onDown);
+			grip.removeEventListener("pointermove", onMove);
+			grip.removeEventListener("pointerup", onUp);
+		});
+	}
+
+	private currentSectionHeight(): number {
+		const v = parseFloat(this.root.style.getPropertyValue("--axxa-fab-section-maxh"));
+		return Number.isFinite(v) ? v : Math.round(window.innerHeight * 0.42);
+	}
+
+	private applyPersistedSize(): void {
+		const s = this.container.resolve(Tokens.Persistence).settings;
+		if (s.fabWidth) this.root.style.width = `${s.fabWidth}px`;
+		if (s.fabHeight) this.root.style.setProperty("--axxa-fab-section-maxh", `${s.fabHeight}px`);
+	}
+
+	private persistSize(): void {
+		this.container.resolve(Tokens.Persistence).updateSettings({
+			fabWidth: Math.round(this.root.getBoundingClientRect().width),
+			fabHeight: Math.round(this.currentSectionHeight()),
+		});
 	}
 
 	// ── dragging ──────────────────────────────────────────────────────────────
@@ -401,6 +550,8 @@ export class FloatingControls implements IDisposable {
 
 	dispose(): void {
 		document.body.removeClass("axxa-frozen");
+		this.treeView?.dispose();
+		this.treeView = null;
 		this.group.dispose();
 	}
 }

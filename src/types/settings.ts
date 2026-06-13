@@ -42,6 +42,11 @@ export interface AxxaSettings {
 	maxMutationEvents: number;
 	/** Disable known desktop-only features automatically on mobile (Feature 18). */
 	mobileGracefulDegrade: boolean;
+	/** Which CSS properties show in the floating editor (compact, user-picked). */
+	fabStyleProps: string[];
+	/** Persisted floating-widget size (null = auto). */
+	fabWidth: number | null;
+	fabHeight: number | null;
 }
 
 /** Productivity data: favourites, pins, recents, saved selectors (Feature 15). */

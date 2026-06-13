@@ -38,6 +38,7 @@ export class DomTreeView implements IDisposable {
 	constructor(
 		private readonly parent: HTMLElement,
 		private readonly container: ServiceContainer,
+		private readonly compact = false,
 	) {
 		this.scheduleRefresh = debounce(() => this.refresh(), 180);
 		this.build();
@@ -51,6 +52,7 @@ export class DomTreeView implements IDisposable {
 
 	private build(): void {
 		const wrap = this.parent.createDiv({ cls: "axxa-domtree" });
+		if (this.compact) wrap.addClass("is-compact");
 
 		// Root selector: which subtree to mirror.
 		const modes = wrap.createDiv({ cls: "axxa-domtree-modes" });
@@ -64,9 +66,9 @@ export class DomTreeView implements IDisposable {
 				this.refresh();
 			};
 		};
-		chip("Active view", "active-view");
-		chip("Whole app", "body");
-		chip("Selection", "selection");
+		chip(this.compact ? "View" : "Active view", "active-view");
+		chip(this.compact ? "App" : "Whole app", "body");
+		chip(this.compact ? "Sel" : "Selection", "selection");
 
 		this.treeEl = wrap.createDiv({ cls: "axxa-domtree-scroll" });
 		this.refresh();

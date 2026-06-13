@@ -307,11 +307,8 @@ export class InspectorView extends ItemView {
 		// toggles) — shared with the floating mobile controls.
 		const editorCard = this.bodyEl.createDiv({ cls: "axxa-card" });
 		editorCard.createEl("h4", { text: "Edit styles" });
-		renderStyleEditor(editorCard.createDiv(), {
-			element: el,
-			css,
-			onChange: () => this.renderBody(),
-		});
+		// The editor refreshes itself in place — no host rebuild (scroll-safe).
+		renderStyleEditor(editorCard.createDiv(), { element: el, css });
 
 		// Matched rules with origin + specificity (capped list for performance)
 		const rules = css.getMatchedRules(el);

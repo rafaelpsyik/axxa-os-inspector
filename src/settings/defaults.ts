@@ -1,4 +1,5 @@
 import type { AxxaPluginData, AxxaSettings } from "../types/settings";
+import { ESSENTIAL_PROPERTIES } from "../ui/styleCatalog";
 
 /** Current persisted-schema version. Bump when the shape changes. */
 export const SCHEMA_VERSION = 1;
@@ -22,6 +23,9 @@ export const DEFAULT_SETTINGS: AxxaSettings = {
 	},
 	maxMutationEvents: 500,
 	mobileGracefulDegrade: true,
+	fabStyleProps: [...ESSENTIAL_PROPERTIES],
+	fabWidth: null,
+	fabHeight: null,
 };
 
 /** A fresh, empty persisted payload. */
